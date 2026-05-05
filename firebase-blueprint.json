@@ -1,0 +1,248 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "age": { "type": "number" },
+        "gender": { "type": "string" },
+        "goal": { "type": "string" },
+        "activity_level": { "type": "string" },
+        "settings_system": { "type": "boolean" },
+        "settings_privacy": { "type": "boolean" },
+        "settings_notifications": { "type": "boolean" },
+        "settings_pro": { "type": "boolean" },
+        "fcmTokens": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "notificationsEnabled": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name"]
+    },
+    "WorkoutPlan": {
+      "title": "Workout Plan",
+      "description": "Weekly workout schedule generated for the user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "generated_at": { "type": "string", "format": "date-time" },
+        "week_schedule": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "day": { "type": "string" },
+              "focus": { "type": "string" },
+              "exercises": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "sets": { "type": "number" },
+                    "reps": { "type": "string" },
+                    "rest": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "WorkoutHistory": {
+      "title": "Workout History",
+      "description": "Log of a single workout session",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "duration": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "exercises": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "variation": { "type": "string" },
+              "sets": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "weight": { "type": "number" },
+                    "reps": { "type": "number" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "DailyStats": {
+      "title": "Daily Fitness Stats",
+      "description": "Daily tracking of health and fitness metrics",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "date": { "type": "string" },
+        "calories": { "type": "number" },
+        "goalCalories": { "type": "number" },
+        "steps": { "type": "number" },
+        "distance": { "type": "number" },
+        "restingHeartRate": { "type": "number" },
+        "sleepScore": { "type": "number" },
+        "lastWeekCalories": { "type": "number" },
+        "lastWeekSteps": { "type": "number" },
+        "lastWeekRestingHeartRate": { "type": "number" },
+        "lastWeekSleepScore": { "type": "number" },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "date"]
+    },
+    "PersonalBests": {
+      "title": "Personal Best Records",
+      "description": "All-time records for fitness metrics",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "maxCalories": { "type": "number" },
+        "maxSteps": { "type": "number" },
+        "maxDistance": { "type": "number" },
+        "totalWorkouts": { "type": "number" }
+      },
+      "required": ["userId"]
+    },
+    "OTP": {
+      "title": "One-Time Password",
+      "description": "Verification code for password reset",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "code": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "expiresAt": { "type": "string", "format": "date-time" },
+        "used": { "type": "boolean" }
+      },
+      "required": ["email", "code", "createdAt", "expiresAt"]
+    },
+    "Habit": {
+      "title": "Lifestyle Habit",
+      "description": "Tracking of daily lifestyle habits",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "icon": { "type": "string" },
+        "value": { "type": "string" },
+        "date": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "value"]
+    },
+    "Recommendation": {
+      "title": "Performance Recommendation",
+      "description": "Smart guidance from performance scientists",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "icon": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "description"]
+    },
+    "SleepData": {
+      "title": "Sleep Data",
+      "description": "Manual sleep logs",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "date": { "type": "string" },
+        "hours": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "date", "hours"]
+    },
+    "BodyData": {
+      "title": "Body Composition Data",
+      "description": "Weight and body fat logs",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "date": { "type": "string" },
+        "weight": { "type": "number" },
+        "bodyFat": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "date", "weight"]
+    },
+    "ReadinessData": {
+      "title": "Readiness Analytics",
+      "description": "Calculated readiness scores",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "date": { "type": "string" },
+        "score": { "type": "number" },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "date", "score"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile collection"
+    },
+    "/workoutPlans/{userId}": {
+      "schema": "WorkoutPlan",
+      "description": "User specific generated workout plans"
+    },
+    "/workouts/{workoutId}": {
+      "schema": "WorkoutHistory",
+      "description": "Workout session logs"
+    },
+    "/dailyStats/{statId}": {
+      "schema": "DailyStats",
+      "description": "Log of daily fitness metrics"
+    },
+    "/personalBests/{userId}": {
+      "schema": "PersonalBests",
+      "description": "All-time personal fitness records"
+    },
+    "/otps/{otpId}": {
+      "schema": "OTP",
+      "description": "Collection of verification codes"
+    },
+    "/habits/{habitId}": {
+      "schema": "Habit",
+      "description": "Daily habit tracking logs"
+    },
+    "/recommendations/{recId}": {
+      "schema": "Recommendation",
+      "description": "Personalized training recommendations"
+    },
+    "/sleep_data/{logId}": {
+      "schema": "SleepData",
+      "description": "User log of sleep duration"
+    },
+    "/body_data/{logId}": {
+      "schema": "BodyData",
+      "description": "User log of body metrics"
+    },
+    "/readiness_data/{readinessId}": {
+      "schema": "ReadinessData",
+      "description": "Dynamic readiness scores"
+    }
+  }
+}

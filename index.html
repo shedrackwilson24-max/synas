@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Synapse | Neural Fitness Protocol</title>
+    <script>
+      (function() {
+        try {
+          if (typeof window !== 'undefined') {
+            var originalFetch = window.fetch;
+            if (originalFetch) {
+              // Try to define it on the instance with both getter and setter
+              // This prevents "TypeError: Cannot set property fetch which has only a getter"
+              Object.defineProperty(window, 'fetch', {
+                get: function() { return originalFetch; },
+                set: function(val) { 
+                  console.log('AppKit/Polyfill attempt to set window.fetch');
+                  originalFetch = val; 
+                },
+                configurable: true,
+                enumerable: true
+              });
+            }
+          }
+          // Debug ethereum state
+          console.log('Initial window.ethereum status:', !!window.ethereum);
+        } catch (err) {
+          // Fallback: if we can't use defineProperty, we might just have to hope for the best
+          // but usually this part runs before any problematic libraries
+        }
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+      (function() {
+        const theme = localStorage.getItem('synapse_theme') || 'dark';
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

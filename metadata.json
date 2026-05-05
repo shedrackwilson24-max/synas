@@ -1,0 +1,6 @@
+{
+  "name": "Synapse Protocol",
+  "description": "High-performance fitness tracking and training recalibration platform. Features neural workout generation, biometric sync, and performance archiving.",
+  "requestFramePermissions": ["notifications"],
+  "majorCapabilities": []
+}

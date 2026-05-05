@@ -1,0 +1,176 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitive Definition
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn(); }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // Phase 4: Entity Validations
+    function isValidUser(data) {
+      return data.name is string && data.name.size() > 0 &&
+             (!data.keys().hasAny(['fcmTokens']) || data.fcmTokens is list) &&
+             (!data.keys().hasAny(['notificationsEnabled']) || data.notificationsEnabled is bool);
+    }
+
+    function isValidWorkout(data) {
+      return data.userId == request.auth.uid &&
+             data.duration is number &&
+             data.name is string &&
+             data.calories is number &&
+             data.exercises is list;
+    }
+
+    function isValidWorkoutPlan(data) {
+      return data.keys().hasAll(['userId', 'generated_at', 'week_schedule']) &&
+             data.userId == request.auth.uid &&
+             data.generated_at == request.time &&
+             data.week_schedule is list;
+    }
+
+    function isValidDailyStats(data) {
+      return data.userId == request.auth.uid &&
+             data.date is string &&
+             data.calories is number &&
+             data.goalCalories is number &&
+             data.steps is number &&
+             data.distance is number;
+    }
+
+    function isValidSleepData(data) {
+      return data.userId == request.auth.uid &&
+             data.date is string &&
+             data.hours is number;
+    }
+
+    function isValidBodyData(data) {
+      return data.userId == request.auth.uid &&
+             data.date is string &&
+             data.weight is number;
+    }
+
+    function isValidReadinessData(data) {
+      return data.userId == request.auth.uid &&
+             data.date is string &&
+             data.score is number;
+    }
+
+    function isValidPB(data) {
+      return data.keys().hasAll(['userId', 'maxCalories', 'maxSteps', 'maxDistance']) &&
+             data.userId == request.auth.uid &&
+             data.maxCalories is number &&
+             data.maxSteps is number &&
+             data.maxDistance is number &&
+             (!data.keys().hasAny(['totalWorkouts']) || data.totalWorkouts is number);
+    }
+
+    function isValidOTP(data) {
+      return data.email is string && 
+             data.email.size() >= 3 &&
+             data.code is string && 
+             data.code.size() == 6 &&
+             data.expiresAt is string;
+    }
+
+    function isValidHabit(data) {
+      return data.userId == request.auth.uid &&
+             data.name is string && data.name.size() <= 100 &&
+             data.value is string && data.value.size() <= 100;
+    }
+
+    function isValidRecommendation(data) {
+      return data.userId == request.auth.uid &&
+             data.title is string && data.title.size() <= 200 &&
+             data.description is string && data.description.size() <= 1000;
+    }
+
+    // 1. Users Collection
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+      allow create, update: if isOwner(userId) && isValidUser(incoming());
+    }
+
+    // 2. Workout Plans Collection
+    match /workoutPlans/{userId} {
+      allow get: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidWorkoutPlan(incoming());
+    }
+
+    // 3. Workouts History Collection
+    match /workouts/{workoutId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // 4. Daily Stats Collection
+    match /dailyStats/{statId} {
+      allow get: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() && incoming().userId == request.auth.uid;
+    }
+
+    // 5. Personal Bests Collection
+    match /personalBests/{userId} {
+      allow get: if isOwner(userId);
+      allow create, update: if isOwner(userId) && incoming().userId == request.auth.uid;
+    }
+
+    // 6. OTPs Collection (Forgot Password/Verification)
+    match /otps/{otpId} {
+      allow create: if isValidOTP(incoming());
+      // Allow reading only if the unique code and email are provided (handled by query)
+      allow list: if resource.data.code != null; 
+      allow update: if incoming().used == true && incoming().diff(existing()).affectedKeys().hasOnly(['used']);
+    }
+
+    // 7. Habits Collection
+    match /habits/{habitId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidHabit(incoming());
+      allow update: if isSignedIn() && incoming().userId == request.auth.uid && isValidHabit(incoming());
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // 8. Recommendations Collection
+    match /recommendations/{recId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidRecommendation(incoming());
+    }
+
+    // 9. Sleep Data Collection
+    match /sleep_data/{logId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
+      allow create, update: if isSignedIn() && incoming().userId == request.auth.uid && isValidSleepData(incoming());
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // 10. Body Data Collection
+    match /body_data/{logId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
+      allow create, update: if isSignedIn() && incoming().userId == request.auth.uid && isValidBodyData(incoming());
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // 11. Readiness Data Collection
+    match /readiness_data/{readinessId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
+      allow create, update: if isSignedIn() && (incoming() == null || incoming().userId == request.auth.uid) && isValidReadinessData(incoming());
+    }
+  }
+}
