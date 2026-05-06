@@ -21,13 +21,18 @@ export async function generateOTP(email: string): Promise<string | { code: strin
 
     // 3. Save to Firestore
     const otpRef = doc(collection(db, path));
-    await setDoc(otpRef, {
-      email,
-      code,
-      createdAt: serverTimestamp(),
-      expiresAt: expiresAt.toISOString(),
-      used: false
-    });
+    try {
+      await setDoc(otpRef, {
+        email,
+        code,
+        createdAt: serverTimestamp(),
+        expiresAt: expiresAt.toISOString(),
+        used: false
+      });
+    } catch (fsError) {
+      handleFirestoreError(fsError, OperationType.CREATE, path);
+      throw fsError;
+    }
 
     // 4. Trigger Real Email via Backend
     const response = await fetch('/api/send-otp', {
@@ -36,12 +41,26 @@ export async function generateOTP(email: string): Promise<string | { code: strin
       body: JSON.stringify({ email, code })
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to dispatch neural code');
+    const text = await response.text();
+    let result: any;
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      throw new Error(JSON.stringify({
+        error: 'Neural broadcast failed',
+        details: `Invalid server response format (HTML detected). Status: ${response.status}`,
+        isApiError: true
+      }));
     }
 
-    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(JSON.stringify({ 
+        error: result.error || 'Neural broadcast failed',
+        details: result.details,
+        isApiError: true 
+      }));
+    }
+
     console.log(`[DISPATCHED] Synapse code sent to ${email}`);
     
     if (result.simulated) {
@@ -53,7 +72,13 @@ export async function generateOTP(email: string): Promise<string | { code: strin
     }
     
     return code;
-  } catch (error) {
+  } catch (error: any) {
+    try {
+      const parsed = JSON.parse(error.message);
+      if (parsed.isApiError) throw error;
+    } catch (e: any) {
+      if (e === error) throw e;
+    }
     handleFirestoreError(error, OperationType.CREATE, path);
     throw error;
   }

@@ -14,7 +14,13 @@ async function startServer() {
   const PORT = 3000;
   
   const resendApiKey = process.env.RESEND_API_KEY;
-  const resendFrom = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+  const rawResendFrom = process.env.RESEND_FROM_EMAIL;
+  
+  // Validate email format for rawResendFrom, fallback to onboarding@resend.dev if invalid
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const resendFrom = (rawResendFrom && emailRegex.test(rawResendFrom)) 
+    ? rawResendFrom 
+    : 'onboarding@resend.dev';
   
   if (resendApiKey) {
     console.log(`RESEND_API_KEY detected. Dispatched via Resend from: ${resendFrom}`);
@@ -68,14 +74,33 @@ async function startServer() {
       });
 
       if (error) {
-        console.error('Broadcast Error:', error);
-        return res.status(500).json({ error: 'Neural broadcast failed' });
+        // Handle Resend validation errors (usually related to unverified domains or recipients on free tier)
+        if (error.name === 'validation_error') {
+          // Log as info/debug rather than error since we have a graceful fallback
+          console.info(`[NEURAL FALLBACK] Resend restricted: Falling back to simulation for ${email}`);
+          return res.json({ 
+            success: true, 
+            simulated: true, 
+            code,
+            warning: 'Resend restricted (unverified domain/recipient). Neural Simulation active.'
+          });
+        }
+
+        console.error('Critical Broadcast Error:', error);
+        return res.status(error.statusCode || 500).json({ 
+          error: 'Neural broadcast failed', 
+          details: error.message,
+          code: error.name
+        });
       }
 
       res.json({ success: true, data });
     } catch (err: any) {
       console.error('Core Logic Failure:', err);
-      res.status(500).json({ error: 'Internal server error' });
+      res.status(500).json({ 
+        error: 'Internal server error during broadcast',
+        details: err.message 
+      });
     }
   });
 

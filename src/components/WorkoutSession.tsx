@@ -85,13 +85,7 @@ export default function WorkoutSession() {
   const [isActive, setIsActive] = useState(() => {
     return localStorage.getItem('synapse_active_session') === 'true';
   });
-  const [seconds, setSeconds] = useState(() => {
-    const savedStart = localStorage.getItem('synapse_session_start');
-    if (savedStart && localStorage.getItem('synapse_active_session') === 'true') {
-      return Math.floor((Date.now() - parseInt(savedStart)) / 1000);
-    }
-    return 0;
-  });
+  const [seconds, setSeconds] = useState(0);
   const [exercises, setExercises] = useState<Exercise[]>(() => {
     const savedExercises = localStorage.getItem('synapse_session_exercises');
     return savedExercises ? JSON.parse(savedExercises) : [];
@@ -105,6 +99,16 @@ export default function WorkoutSession() {
   const [isRestPaused, setIsRestPaused] = useState(false);
   const [restDuration, setRestDuration] = useState(90);
   const restIntervalRef = useRef<any>(null);
+  const startTimeRef = useRef<number | null>(null);
+  const restEndTimeRef = useRef<number | null>(null);
+
+  // Initialize startTimeRef from localStorage on mount
+  useEffect(() => {
+    const savedStart = localStorage.getItem('synapse_session_start');
+    if (savedStart && isActive) {
+      startTimeRef.current = parseInt(savedStart);
+    }
+  }, []);
 
   useEffect(() => {
     const loadPlan = async () => {
@@ -162,41 +166,78 @@ export default function WorkoutSession() {
       localStorage.setItem('synapse_active_session', 'true');
       localStorage.setItem('synapse_session_exercises', JSON.stringify(exercises));
       if (!localStorage.getItem('synapse_session_start')) {
-        localStorage.setItem('synapse_session_start', Date.now().toString());
+        const now = Date.now();
+        localStorage.setItem('synapse_session_start', now.toString());
+        startTimeRef.current = now;
+      } else if (!startTimeRef.current) {
+        startTimeRef.current = parseInt(localStorage.getItem('synapse_session_start')!);
       }
     } else {
       localStorage.removeItem('synapse_active_session');
       localStorage.removeItem('synapse_session_start');
       localStorage.removeItem('synapse_session_exercises');
+      startTimeRef.current = null;
     }
   }, [isActive, exercises]);
 
   useEffect(() => {
     let interval: any = null;
+    
+    const tick = () => {
+      if (startTimeRef.current) {
+        setSeconds(Math.floor((Date.now() - startTimeRef.current) / 1000));
+      }
+    };
+
     if (isActive) {
-      interval = setInterval(() => {
-        const savedStart = localStorage.getItem('synapse_session_start');
-        if (savedStart) {
-          setSeconds(Math.floor((Date.now() - parseInt(savedStart)) / 1000));
-        } else {
-          setSeconds((prev) => prev + 1);
-        }
-      }, 1000);
+      tick();
+      interval = setInterval(tick, 1000);
+
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') tick();
+      };
+      
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      return () => {
+        clearInterval(interval);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
     } else {
       clearInterval(interval);
+      setSeconds(0);
     }
     return () => clearInterval(interval);
   }, [isActive]);
 
   useEffect(() => {
+    const updateRest = () => {
+      if (restEndTimeRef.current) {
+        const remaining = Math.max(0, Math.ceil((restEndTimeRef.current - Date.now()) / 1000));
+        setRestSeconds(remaining);
+        if (remaining === 0) {
+          restEndTimeRef.current = null;
+        }
+      }
+    };
+
     if (restSeconds > 0 && !isRestPaused) {
-      restIntervalRef.current = setInterval(() => {
-        setRestSeconds((prev) => prev - 1);
-      }, 1000);
+      restIntervalRef.current = setInterval(updateRest, 1000);
+      
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') updateRest();
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      return () => {
+        clearInterval(restIntervalRef.current);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
     } else {
       if (restIntervalRef.current) clearInterval(restIntervalRef.current);
     }
-    return () => clearInterval(restIntervalRef.current);
+    return () => {
+      if (restIntervalRef.current) clearInterval(restIntervalRef.current);
+    };
   }, [restSeconds, isRestPaused]);
 
   const formatTime = (totalSeconds: number) => {
@@ -207,6 +248,9 @@ export default function WorkoutSession() {
   };
 
   const startWorkout = () => {
+    const now = Date.now();
+    startTimeRef.current = now;
+    localStorage.setItem('synapse_session_start', now.toString());
     setIsActive(true);
     if (exercises.length === 0) {
       addExercise();
@@ -259,15 +303,28 @@ export default function WorkoutSession() {
 
   const skipRest = () => {
     setRestSeconds(0);
+    restEndTimeRef.current = null;
     setIsRestPaused(false);
   };
 
-  const toggleRestPause = () => setIsRestPaused(!isRestPaused);
+  const toggleRestPause = () => {
+    if (!isRestPaused) {
+      // Pausing: restEndTime holds the future timestamp. 
+      // We don't need to do anything special here as the interval will stop.
+    } else {
+      // Unpausing: Recalculate restEndTime based on remaining seconds
+      restEndTimeRef.current = Date.now() + restSeconds * 1000;
+    }
+    setIsRestPaused(!isRestPaused);
+  };
 
   const adjustRestDuration = (amount: number) => {
     setRestDuration(prev => Math.max(10, prev + amount));
     if (restSeconds > 0) {
       setRestSeconds(prev => Math.max(5, prev + amount));
+      if (restEndTimeRef.current) {
+        restEndTimeRef.current += amount * 1000;
+      }
     }
   };
 
@@ -279,6 +336,7 @@ export default function WorkoutSession() {
     // Trigger rest timer when marking as completed
     if (field === 'isCompleted' && value === true) {
       setRestSeconds(restDuration);
+      restEndTimeRef.current = Date.now() + restDuration * 1000;
       setIsRestPaused(false);
     }
     
@@ -304,11 +362,18 @@ export default function WorkoutSession() {
     if (!user) return;
     setIsFinishing(true);
     const path = 'workouts';
+    
+    // Final calculation of duration for maximum accuracy
+    let finalDuration = seconds;
+    if (startTimeRef.current) {
+      finalDuration = Math.floor((Date.now() - startTimeRef.current) / 1000);
+    }
+
     try {
       const completedExercises = exercises.filter(ex => ex.sets.some(s => s.isCompleted));
       const workoutData = {
         userId: user.uid,
-        duration: seconds,
+        duration: finalDuration,
         timestamp: serverTimestamp(),
         exercises: completedExercises.map(ex => ({
           ...ex,
@@ -319,7 +384,7 @@ export default function WorkoutSession() {
       await addDoc(collection(db, 'workouts'), workoutData);
 
       // Update Daily Stats & Personal Bests
-      const caloriesBurned = Math.round((seconds / 60) * 8); // ~8 kcal per minute avg
+      const caloriesBurned = Math.round((finalDuration / 60) * 8); // ~8 kcal per minute avg
       const [results, exercisePBResults] = await Promise.all([
         addWorkoutToStats(user.uid, caloriesBurned),
         updateExercisePBs(user.uid, workoutData.exercises)
@@ -331,7 +396,7 @@ export default function WorkoutSession() {
       );
       
       setSummaryData({
-        duration: seconds,
+        duration: finalDuration,
         totalVolume,
         exerciseCount: workoutData.exercises.length,
         streaks: results?.streaks || { current: 1, best: 1 },

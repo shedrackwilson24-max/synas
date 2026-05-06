@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 
+import { motion, AnimatePresence } from 'motion/react';
 import Dashboard from './components/Dashboard';
 import Onboarding from './components/Onboarding';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -20,9 +21,42 @@ const WorkoutHistory = lazy(() => import('./components/WorkoutHistory'));
 const MainLayout = lazy(() => import('./components/MainLayout'));
 
 const LoadingFallback = () => (
-  <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center text-white gap-4">
-    <div className="text-[10px] font-black uppercase tracking-[0.3em] text-accent">
-      Neural Sync...
+  <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden">
+    {/* Background Glow */}
+    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-accent/5 blur-[120px] rounded-full" />
+    
+    <div className="relative flex flex-col items-center gap-8">
+      <motion.div
+        animate={{ 
+          scale: [1, 1.1, 1],
+          opacity: [0.5, 1, 0.5]
+        }}
+        transition={{ 
+          duration: 2,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+        className="w-16 h-16 border-2 border-accent/20 rounded-2xl flex items-center justify-center"
+      >
+        <div className="w-8 h-8 bg-accent rounded-lg shadow-[0_0_20px_rgba(var(--accent-rgb),0.5)]" />
+      </motion.div>
+
+      <div className="flex flex-col items-center gap-2">
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-[10px] font-black uppercase tracking-[0.4em] text-accent"
+        >
+          Neural Syncing
+        </motion.div>
+        <div className="w-32 h-[1px] bg-white/5 relative overflow-hidden">
+          <motion.div 
+            animate={{ x: ['-100%', '100%'] }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-accent to-transparent w-full h-full"
+          />
+        </div>
+      </div>
     </div>
   </div>
 );
@@ -46,22 +80,24 @@ function AppRoutes() {
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-sans selection:bg-accent selection:text-black">
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>
-          <Routes>
-            <Route path="/" element={<Onboarding />} />
-            <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
-            <Route path="/profile-setup" element={<PrivateRoute><ProfileSetup /></PrivateRoute>} />
-            
-            <Route element={<PrivateRoute><MainLayout /></PrivateRoute>}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/training" element={<Training />} />
-              <Route path="/stats" element={<Stats />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/history" element={<WorkoutHistory />} />
-            </Route>
+          <AnimatePresence mode="wait">
+            <Routes>
+              <Route path="/" element={<Onboarding />} />
+              <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
+              <Route path="/profile-setup" element={<PrivateRoute><ProfileSetup /></PrivateRoute>} />
+              
+              <Route element={<PrivateRoute><MainLayout /></PrivateRoute>}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/training" element={<Training />} />
+                <Route path="/stats" element={<Stats />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/history" element={<WorkoutHistory />} />
+              </Route>
 
-            <Route path="/workout" element={<PrivateRoute><WorkoutSession /></PrivateRoute>} />
-          </Routes>
+              <Route path="/workout" element={<PrivateRoute><WorkoutSession /></PrivateRoute>} />
+            </Routes>
+          </AnimatePresence>
         </Suspense>
       </ErrorBoundary>
     </div>

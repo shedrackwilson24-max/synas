@@ -6,7 +6,10 @@
       "type": "object",
       "properties": {
         "name": { "type": "string" },
+        "email": { "type": "string" },
         "photoURL": { "type": "string" },
+        "provider": { "type": "string" },
+        "lastLoginAt": { "type": "string", "format": "date-time" },
         "age": { "type": "number" },
         "gender": { "type": "string" },
         "goal": { "type": "string" },

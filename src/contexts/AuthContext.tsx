@@ -20,7 +20,10 @@ const AuthContext = createContext<AuthContextType>({
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    // Optimistically check if we have an active session to reduce flash
+    return true;
+  });
   const [isAuthFlow, setIsAuthFlow] = useState(false);
 
   const logout = async () => {

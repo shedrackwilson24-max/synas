@@ -1,13 +1,26 @@
 import React from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { LayoutGrid, Dumbbell, BarChart3, User } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function MainLayout() {
+  const location = useLocation();
+
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] selection:bg-accent selection:text-black relative">
       {/* Scrollable Content Area */}
-      <main className="max-w-md mx-auto relative pb-24">
-        <Outlet />
+      <main className="max-w-md mx-auto relative pb-24 overflow-x-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 10, filter: 'blur(10px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: -10, filter: 'blur(10px)' }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+          >
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* Persistent Bottom Navigation */}
@@ -32,22 +45,38 @@ function NavItem({ to, icon, label }: { to: string, icon: React.ReactNode, label
     <NavLink 
       to={to}
       className={({ isActive }) => `
-        flex flex-col items-center gap-1 transition-all duration-300
+        flex flex-col items-center gap-1 transition-all duration-300 relative group
         ${isActive ? 'text-accent scale-110' : 'text-gray-600 hover:text-gray-300'}
       `}
     >
       {({ isActive }) => (
         <>
-          <div className="p-2 rounded-xl transition-colors">
+          <motion.div 
+            whileTap={{ scale: 0.9, rotate: isActive ? 0 : [0, -10, 10, 0] }}
+            className="p-2 rounded-xl transition-colors relative"
+          >
+            {isActive && (
+              <motion.div 
+                layoutId="nav-bg"
+                className="absolute inset-0 bg-accent/10 rounded-xl blur-sm"
+              />
+            )}
             {icon}
-          </div>
+          </motion.div>
           <span className="text-[8px] font-black uppercase tracking-[0.2em]">{label}</span>
           
           {/* Active Indicator */}
-          <div className={`
-            w-1.5 h-1.5 rounded-full bg-accent mt-1 transition-all duration-300
-            ${isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-0'}
-          `} />
+          <AnimatePresence>
+            {isActive && (
+              <motion.div 
+                layoutId="active-dot"
+                className="w-1.5 h-1.5 rounded-full bg-accent mt-1"
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0, opacity: 0 }}
+              />
+            )}
+          </AnimatePresence>
         </>
       )}
     </NavLink>

@@ -341,15 +341,25 @@ export default function Dashboard() {
       </header>
 
       <motion.main className="space-y-8">
-        <div className="mb-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-4"
+        >
           <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-none">
             STATUS: <span className="text-accent underline decoration-accent/30 underline-offset-4">{profile?.activity_level || 'RECRUIT'}</span>
           </h2>
           <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-2">Personal Growth Protocol Active | {profile?.name || user?.email}</p>
-        </div>
+        </motion.div>
 
         {/* Synapse Sync Ring */}
-        <section className="flex flex-col gap-6 bg-[var(--bg-card)] p-10 rounded-[3rem] border border-[var(--border-color)] shadow-2xl relative overflow-hidden group">
+        <motion.section 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+          className="flex flex-col gap-6 bg-[var(--bg-card)] p-10 rounded-[3rem] border border-[var(--border-color)] shadow-2xl relative overflow-hidden group"
+        >
           <div className="flex justify-center">
             <div className="relative">
               <FitnessRing 
@@ -404,10 +414,15 @@ export default function Dashboard() {
               <Heart size={12} /> Log HR
             </button>
           </div>
-        </section>
+        </motion.section>
 
         {/* Step Tracker Card */}
-        <section className="bg-[var(--bg-card)] rounded-[2.5rem] p-8 border border-[var(--border-color)] relative overflow-hidden group">
+        <motion.section 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-[var(--bg-card)] rounded-[2.5rem] p-8 border border-[var(--border-color)] relative overflow-hidden group"
+        >
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className={`p-3 rounded-2xl ${isTracking ? 'bg-accent/20 text-accent' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'}`}>
@@ -482,10 +497,15 @@ export default function Dashboard() {
           <div className="absolute -bottom-8 -right-8 opacity-5 rotate-12 group-hover:rotate-0 transition-transform duration-700">
             <ActivityIcon size={120} />
           </div>
-        </section>
+        </motion.section>
 
         {/* Health Metrics Dashboard */}
-        <section className="grid grid-cols-2 gap-4">
+        <motion.section 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="grid grid-cols-2 gap-4"
+        >
           <MetricCard 
             label="Resting HR"
             value={`${dailyStats?.restingHeartRate || 0} bpm`}
@@ -518,10 +538,14 @@ export default function Dashboard() {
             isSynced={true}
             loading={statsLoading}
           />
-        </section>
+        </motion.section>
 
         {/* Recent Workouts Summary */}
-        <section>
+        <motion.section
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-[.2em]">Protocol History</h3>
             <div className="flex gap-1">
@@ -583,10 +607,15 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-        </section>
+        </motion.section>
 
         {/* Quick Stats Grid */}
-        <section className="space-y-4">
+        <motion.section 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="space-y-4"
+        >
           <div className="bg-[var(--bg-card)] p-6 rounded-[2.5rem] border border-[var(--border-color)] flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 text-[8px] text-gray-500 font-black uppercase tracking-[.2em] mb-4">
@@ -636,10 +665,14 @@ export default function Dashboard() {
               <Dumbbell size={100} />
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Goal Progress (Refined) */}
-        <section>
+        <motion.section
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+        >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-[.2em]">Synapse Growth</h3>
             <div className="flex gap-1">
@@ -673,7 +706,7 @@ export default function Dashboard() {
               })}
             </div>
           </div>
-        </section>
+        </motion.section>
       </motion.main>
 
       <AnimatePresence>

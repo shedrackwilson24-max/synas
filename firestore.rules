@@ -17,6 +17,11 @@ service cloud.firestore {
     // Phase 4: Entity Validations
     function isValidUser(data) {
       return data.name is string && data.name.size() > 0 &&
+             (!data.keys().hasAny(['email']) || data.email is string) &&
+             (!data.keys().hasAny(['photoURL']) || (data.photoURL is string || data.photoURL == null)) &&
+             (!data.keys().hasAny(['provider']) || data.provider is string) &&
+             (!data.keys().hasAny(['lastLoginAt']) || data.lastLoginAt is timestamp) &&
+             (!data.keys().hasAny(['createdAt']) || data.createdAt is timestamp) &&
              (!data.keys().hasAny(['fcmTokens']) || data.fcmTokens is list) &&
              (!data.keys().hasAny(['notificationsEnabled']) || data.notificationsEnabled is bool);
     }
@@ -74,10 +79,12 @@ service cloud.firestore {
 
     function isValidOTP(data) {
       return data.email is string && 
-             data.email.size() >= 3 &&
+             data.email.size() >= 3 && data.email.size() <= 256 &&
              data.code is string && 
              data.code.size() == 6 &&
-             data.expiresAt is string;
+             data.expiresAt is string &&
+             data.used is bool &&
+             data.createdAt is timestamp;
     }
 
     function isValidHabit(data) {

@@ -226,9 +226,12 @@ export default function Training() {
           <button className="text-[10px] font-black uppercase tracking-widest text-accent">Browse All</button>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          {CATEGORIES.map(cat => (
+          {CATEGORIES.map((cat, i) => (
             <motion.div 
               key={cat.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 + (i * 0.05) }}
               whileTap={{ scale: 0.95 }}
               className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[2rem] p-6 text-center group cursor-pointer hover:border-accent transition-colors"
             >
