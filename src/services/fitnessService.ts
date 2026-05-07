@@ -7,7 +7,7 @@ import {
   serverTimestamp,
   onSnapshot
 } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
 
 export interface DailyStats {
   userId: string;
@@ -239,6 +239,7 @@ export function subscribeToDailyStats(userId: string, callback: (stats: DailySta
       }
     },
     (err) => {
+      if (!auth.currentUser) return; // Suppress noise during logout
       handleFirestoreError(err, OperationType.GET, `dailyStats/${docId}`);
     }
   );
@@ -254,6 +255,7 @@ export function subscribeToPersonalBests(userId: string, callback: (pb: Personal
       }
     },
     (err) => {
+      if (!auth.currentUser) return; // Suppress noise during logout
       handleFirestoreError(err, OperationType.GET, `personalBests/${userId}`);
     }
   );
@@ -310,10 +312,20 @@ export async function getPersonalBests(userId: string) {
     const docRef = doc(db, 'personalBests', userId);
     const snap = await getDoc(docRef);
     if (snap.exists()) {
-      return snap.data()?.exerciseBests || [];
+      const data = snap.data() as PersonalBests;
+      if (data.exerciseBests) {
+        return Object.entries(data.exerciseBests).map(([name, best]) => ({
+          exerciseName: name,
+          ...best
+        }));
+      }
     }
     return [];
   } catch (err) {
+    if (!auth.currentUser) {
+      console.warn('Synapse: getPersonalBests called while auth.currentUser is null. This usually happens during auth state transitions.');
+      return [];
+    }
     handleFirestoreError(err, OperationType.GET, path);
     return [];
   }
@@ -435,6 +447,7 @@ export function subscribeToReadiness(userId: string, callback: (score: number) =
       }
     },
     (err) => {
+      if (!auth.currentUser) return; // Suppress noise during logout
       handleFirestoreError(err, OperationType.GET, `readiness_data/${docId}`);
     }
   );

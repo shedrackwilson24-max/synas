@@ -276,18 +276,23 @@ export default function Stats() {
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="pb-32 px-6 pt-8 max-w-lg mx-auto"
+      className="pb-32 px-4 sm:px-8 lg:px-0 pt-8 w-full"
     >
-      <header className="mb-10 text-center">
-        <div className="inline-block p-4 bg-accent/20 rounded-full mb-4">
+      <header className="mb-12 text-center lg:text-left lg:flex lg:items-center lg:gap-8">
+        <div className="inline-block lg:inline-flex p-4 bg-accent/20 rounded-full mb-4 lg:mb-0">
           <TrendingUp className="text-accent" size={32} />
         </div>
-        <h1 className="text-4xl font-black italic uppercase tracking-tighter mb-2">Synapse Insights</h1>
-        <p className="text-xs text-gray-500 font-medium uppercase tracking-widest leading-relaxed">Analyzing your synaptic growth patterns.</p>
+        <div>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black italic uppercase tracking-tighter mb-2">Synapse Insights</h1>
+          <p className="text-xs text-gray-500 font-medium uppercase tracking-widest leading-relaxed">Analyzing your synaptic growth patterns across all metrics.</p>
+        </div>
       </header>
 
-      {/* 2x2 Metrics Grid */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 lg:gap-12">
+        {/* Main Stats Area */}
+        <div className="xl:col-span-8 space-y-12">
+          {/* 2x2 Metrics Grid -> 4x1 on tablet+ */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard 
           label="Heart Rate"
           value={dailyStats?.restingHeartRate ? `${dailyStats.restingHeartRate}BPM` : '--'}
@@ -322,8 +327,8 @@ export default function Stats() {
         />
       </div>
 
-      {/* Weekly Overview Section */}
-      <section className="mb-12">
+          {/* Weekly Overview Section */}
+          <section>
         <div className="flex items-center justify-between mb-6 px-2">
           <div>
             <h2 className="text-xl font-black italic uppercase tracking-tighter">Weekly Protocol</h2>
@@ -348,8 +353,8 @@ export default function Stats() {
             </div>
           </div>
 
-          <div className="p-6">
-            <div className="h-40 mb-8">
+              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="h-40">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Step Trend</span>
                 <Footprints size={12} className="text-accent" />
@@ -393,186 +398,166 @@ export default function Stats() {
         </div>
       </section>
 
-      {/* Synapse Analysis Section */}
-      <section className="mb-12">
-        <div className="bg-gradient-to-br from-accent/20 to-blue-600/20 p-8 rounded-[3rem] border border-accent/20 relative overflow-hidden group">
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-4">
-              <Zap className="text-accent" size={20} />
-              <h2 className="text-xl font-black italic uppercase tracking-tighter">Synapse Analysis</h2>
-            </div>
-            <p className="text-[11px] text-gray-300 font-medium leading-relaxed mb-6 italic">
-              {stats.totalWorkouts > 0 
-                ? "Your synaptic patterns indicate a trend toward increased volume. Recovery sync is critical for synaptic consolidation. Maintain your current protocol for 3 more cycles to lock in gains."
-                : "Awaiting initial data stream. Complete your first synaptic session to activate predictive insights and performance mapping."}
-            </p>
-            <button 
-              onClick={() => navigate('/training')}
-              className="px-6 py-3 bg-accent text-black text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-accent/90 transition-all active:scale-95"
-            >
-              Optimize Protocol
-            </button>
-          </div>
-          <div className="absolute -bottom-4 -right-4 opacity-5 rotate-12 group-hover:rotate-0 transition-transform duration-700">
-            <ActivityIcon size={120} className="text-accent" />
-          </div>
-        </div>
-      </section>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <section className="bg-[var(--bg-card)] p-6 rounded-[2.5rem] border border-[var(--border-color)] h-72 overflow-hidden shadow-xl hover:border-accent/30 transition-all">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-black italic uppercase tracking-tighter">Volume Protocol</h2>
+                <span className="text-[10px] font-black text-accent uppercase tracking-widest">Last 14 Sessions</span>
+              </div>
+              <div className="h-48">
+                {stats.volumeData.length > 1 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={stats.volumeData}>
+                      <defs>
+                        <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#00F2FF" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#00F2FF" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <Area 
+                        type="monotone" 
+                        dataKey="volume" 
+                        stroke="#00F2FF" 
+                        strokeWidth={4}
+                        fillOpacity={1} 
+                        fill="url(#colorVolume)" 
+                      />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '12px' }}
+                        itemStyle={{ color: '#00F2FF', fontWeight: 'bold' }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-gray-700 text-[10px] font-black uppercase tracking-[0.3em] bg-white/5 rounded-3xl">Insufficient Data Points</div>
+                )}
+              </div>
+            </section>
 
-      {/* lifestyle habits... */}
-      <section className="mb-12">
-        <div className="flex items-center justify-between mb-6 px-2">
-          <div>
-            <h2 className="text-xl font-black italic uppercase tracking-tighter">Lifestyle Habits</h2>
-            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">This Week · Protocol Integrity</p>
+            <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[2.5rem] p-6 h-72 shadow-xl hover:border-accent/30 transition-all">
+              <h2 className="text-xl font-black italic uppercase tracking-tighter mb-6">Frequency Profile</h2>
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.frequencyData}>
+                    <Bar 
+                      dataKey="count" 
+                      fill="#3b82f6" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <XAxis 
+                      dataKey="day" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: '#666', fontSize: 10, fontWeight: 'bold' }}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </section>
           </div>
-          <span className="text-[8px] text-accent font-black uppercase tracking-widest">{habits.length} tracked</span>
         </div>
-        
-        <div className="space-y-3">
-          {habitsLoading ? (
-            [1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="bg-[var(--bg-card)] p-4 rounded-3xl border border-[var(--border-color)] flex items-center gap-4 shadow-xl">
-                <Skeleton className="w-12 h-12 rounded-2xl" />
-                <div className="flex-1">
-                  <Skeleton className="w-24 h-4 mb-1" />
-                  <Skeleton className="w-16 h-2" />
-                </div>
-                <div className="text-right">
-                  <Skeleton className="w-12 h-6 mb-1 ml-auto" />
-                  <Skeleton className="w-8 h-2 ml-auto" />
-                </div>
-              </div>
-            ))
-          ) : habits.map((habit, i) => (
-            <motion.div 
-              key={habit.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              onClick={() => updateHabitValue(habit.id, habit.value)}
-              className="bg-[var(--bg-card)] p-4 rounded-3xl border border-[var(--border-color)] flex items-center gap-4 hover:border-accent/40 transition-all cursor-pointer group"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-[var(--bg-secondary)] flex items-center justify-center border border-white/5 shadow-inner group-hover:scale-105 transition-transform shrink-0">
-                {getHabitIcon(habit.icon, habit.color)}
-              </div>
-              <div className="flex-1">
-                <h4 className="font-black italic uppercase tracking-tighter text-sm leading-none mb-1">{habit.name}</h4>
-                <p className="text-[8px] text-gray-600 font-bold uppercase tracking-widest leading-none">Standard Threshold Meta</p>
-              </div>
-              <div className="text-right">
-                <div className="text-lg font-black italic uppercase tracking-tighter text-accent group-hover:scale-110 transition-transform origin-right">{habit.value}</div>
-                <div className="text-[6px] text-gray-700 font-bold uppercase tracking-widest">Optimized</div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
 
-      <section className="mb-10">
-        <div className="bg-[var(--bg-card)] p-6 rounded-[2.5rem] border border-[var(--border-color)] h-72 overflow-hidden">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-black italic uppercase tracking-tighter">Volume Protocol</h2>
-            <span className="text-[10px] font-black text-accent uppercase tracking-widest">Last 14 Sessions</span>
-          </div>
-          <div className="h-48">
-            {stats.volumeData.length > 1 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={stats.volumeData}>
-                  <defs>
-                    <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#00F2FF" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#00F2FF" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <Area 
-                    type="monotone" 
-                    dataKey="volume" 
-                    stroke="#00F2FF" 
-                    strokeWidth={4}
-                    fillOpacity={1} 
-                    fill="url(#colorVolume)" 
-                  />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '12px' }}
-                    itemStyle={{ color: '#00F2FF', fontWeight: 'bold' }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-gray-700 text-[10px] font-black uppercase tracking-[0.3em]">Insufficient Data Points</div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Hall of Fame section */}
-      <section className="mb-10">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <Award className="text-accent" size={20} />
-            <h2 className="text-xl font-black italic uppercase tracking-tighter">Synapse Records</h2>
-          </div>
-          <span className="text-[8px] text-gray-600 font-black uppercase tracking-widest">All-Time Bests</span>
-        </div>
-        
-        <div className="space-y-4">
-          {exerciseBests.length > 0 ? exerciseBests.map((item, idx) => (
-            <motion.div 
-              key={idx}
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: idx * 0.05 }}
-              className="bg-[var(--bg-card)] p-6 rounded-[2.5rem] border border-[var(--border-color)] flex items-center justify-between group cursor-pointer hover:border-accent/40 transition-colors relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                <Star size={60} fill="currentColor" />
-              </div>
+        {/* Sidebar Status Area */}
+        <div className="xl:col-span-4 space-y-8">
+          {/* Synapse Analysis (Stays relevant on top) */}
+          <section>
+            <div className="bg-gradient-to-br from-accent/20 to-blue-600/20 p-8 rounded-[3rem] border border-accent/20 relative overflow-hidden group shadow-2xl">
               <div className="relative z-10">
-                <h4 className="font-black italic uppercase tracking-tighter text-lg">{item.name}</h4>
-                <div className="flex items-center gap-2 mt-1">
-                  <Calendar size={10} className="text-gray-600" />
-                  <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">{new Date(item.date).toLocaleDateString()}</p>
+                <div className="flex items-center gap-2 mb-4">
+                  <Zap className="text-accent" size={20} />
+                  <h2 className="text-xl font-black italic uppercase tracking-tighter">Synapse AI</h2>
                 </div>
+                <p className="text-[11px] text-gray-300 font-medium leading-relaxed mb-6 italic">
+                  {stats.totalWorkouts > 0 
+                    ? "Your synaptic patterns indicate a trend toward increased volume. Recovery sync is critical for synaptic consolidation."
+                    : "Awaiting initial data stream. Complete your first synaptic session to activate predictive insights."}
+                </p>
+                <button 
+                  onClick={() => navigate('/training')}
+                  className="w-full py-4 bg-accent text-black text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-black hover:text-accent transition-all active:scale-95 shadow-lg shadow-accent/20"
+                >
+                  Optimize Protocol
+                </button>
               </div>
-              <div className="text-right relative z-10">
-                <div className="flex items-baseline justify-end gap-1">
-                  <span className="text-2xl font-black text-accent italic">{item.weight}</span>
-                  <span className="text-[10px] font-black text-gray-500 italic uppercase">kg</span>
-                </div>
-                <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">For {item.reps} Reps</p>
-              </div>
-            </motion.div>
-          )) : (
-            <div className="bg-[#111] p-12 rounded-[2.5rem] border border-dashed border-gray-800 text-center">
-              <Trophy size={32} className="mx-auto mb-4 text-gray-800" />
-              <p className="text-[10px] text-gray-600 font-black uppercase tracking-[0.3em]">No personal records achieved yet.</p>
-              <p className="text-[8px] text-gray-800 mt-2 font-bold uppercase">Push your limits in the next session.</p>
+              <ActivityIcon size={80} className="absolute -bottom-4 -right-4 opacity-5 text-accent" />
             </div>
-          )}
-        </div>
-      </section>
+          </section>
 
-      <section className="mb-10">
-        <h2 className="text-xl font-black italic uppercase tracking-tighter mb-6">Frequency Distribution</h2>
-        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[2.5rem] p-6 h-48">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={stats.frequencyData}>
-              <Bar 
-                dataKey="count" 
-                fill="#3b82f6" 
-                radius={[4, 4, 0, 0]}
-              />
-              <XAxis 
-                dataKey="day" 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fill: '#666', fontSize: 10, fontWeight: 'bold' }}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          {/* Lifestyle Habits */}
+          <section>
+            <div className="flex items-center justify-between mb-6 px-2">
+              <h2 className="text-lg font-black italic uppercase tracking-tighter text-gray-400">Habit Registry</h2>
+              <span className="text-[8px] text-accent font-black uppercase tracking-widest">{habits.length} ACTIVE</span>
+            </div>
+            
+            <div className="space-y-3">
+              {habitsLoading ? (
+                [1, 2, 3].map(i => (
+                  <div key={i} className="bg-[var(--bg-card)] p-4 rounded-3xl border border-[var(--border-color)] flex items-center gap-4 animate-pulse">
+                    <div className="w-10 h-10 rounded-2xl bg-white/5" />
+                    <div className="flex-1 space-y-2">
+                      <div className="w-20 h-2 bg-white/5 rounded" />
+                      <div className="w-12 h-1 bg-white/5 rounded" />
+                    </div>
+                  </div>
+                ))
+              ) : habits.map((habit, i) => (
+                <motion.div 
+                  key={habit.id}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  onClick={() => updateHabitValue(habit.id, habit.value)}
+                  className="bg-[var(--bg-card)] p-5 rounded-3xl border border-[var(--border-color)] flex items-center gap-4 hover:border-accent/40 transition-all cursor-pointer group shadow-lg"
+                >
+                  <div className="w-10 h-10 rounded-2xl bg-[var(--bg-secondary)] flex items-center justify-center shrink-0 border border-white/5">
+                    {getHabitIcon(habit.icon, habit.color)}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-black italic uppercase tracking-tighter text-sm leading-none mb-1">{habit.name}</h4>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xl font-black italic uppercase tracking-tighter text-accent group-hover:scale-110 transition-transform origin-right">{habit.value}</div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+
+          {/* Hall of Fame / Records */}
+          <section>
+            <div className="flex items-center justify-between mb-6 px-2">
+              <div className="flex items-center gap-2">
+                <Award className="text-accent" size={18} />
+                <h2 className="text-lg font-black italic uppercase tracking-tighter text-gray-400">The Records</h2>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              {exerciseBests.length > 0 ? exerciseBests.slice(0, 3).map((item, idx) => (
+                <motion.div 
+                  key={idx}
+                  initial={{ x: 20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  className="bg-[var(--bg-card)] p-5 rounded-3xl border border-[var(--border-color)] flex items-center justify-between group hover:border-accent/40 shadow-lg transition-colors"
+                >
+                  <div>
+                    <h4 className="font-black italic uppercase tracking-tighter text-sm">{item.name}</h4>
+                    <p className="text-[8px] text-gray-600 font-bold uppercase mt-1">{new Date(item.date).toLocaleDateString()}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xl font-black text-accent italic">{item.weight} <span className="text-[10px] text-gray-500">kg</span></span>
+                  </div>
+                </motion.div>
+              )) : (
+                <div className="bg-[var(--bg-secondary)] p-8 rounded-3xl border border-dashed border-gray-800 text-center opacity-50">
+                  <p className="text-[8px] text-gray-600 font-black uppercase tracking-[0.2em]">Secure a record to archive here</p>
+                </div>
+              )}
+            </div>
+          </section>
         </div>
-      </section>
+      </div>
     </motion.div>
   );
 }

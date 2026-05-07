@@ -123,19 +123,6 @@
       },
       "required": ["userId"]
     },
-    "OTP": {
-      "title": "One-Time Password",
-      "description": "Verification code for password reset",
-      "type": "object",
-      "properties": {
-        "email": { "type": "string" },
-        "code": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "expiresAt": { "type": "string", "format": "date-time" },
-        "used": { "type": "boolean" }
-      },
-      "required": ["email", "code", "createdAt", "expiresAt"]
-    },
     "Habit": {
       "title": "Lifestyle Habit",
       "description": "Tracking of daily lifestyle habits",
@@ -222,10 +209,6 @@
     "/personalBests/{userId}": {
       "schema": "PersonalBests",
       "description": "All-time personal fitness records"
-    },
-    "/otps/{otpId}": {
-      "schema": "OTP",
-      "description": "Collection of verification codes"
     },
     "/habits/{habitId}": {
       "schema": "Habit",

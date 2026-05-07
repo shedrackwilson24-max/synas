@@ -340,373 +340,351 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <motion.main className="space-y-8">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-4"
-        >
-          <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-none">
-            STATUS: <span className="text-accent underline decoration-accent/30 underline-offset-4">{profile?.activity_level || 'RECRUIT'}</span>
-          </h2>
-          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-2">Personal Growth Protocol Active | {profile?.name || user?.email}</p>
-        </motion.div>
+      <motion.main className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+        {/* Left Column: Core Status & Major Indicators */}
+        <div className="lg:col-span-12 xl:col-span-8 space-y-8">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black italic uppercase tracking-tighter leading-none">
+              STATUS: <span className="text-accent underline decoration-accent/30 underline-offset-4">{profile?.activity_level || 'RECRUIT'}</span>
+            </h2>
+            <p className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-widest mt-2 sm:mt-4">Personal Growth Protocol Active | {profile?.name || user?.email}</p>
+          </motion.div>
 
-        {/* Synapse Sync Ring */}
-        <motion.section 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className="flex flex-col gap-6 bg-[var(--bg-card)] p-10 rounded-[3rem] border border-[var(--border-color)] shadow-2xl relative overflow-hidden group"
-        >
-          <div className="flex justify-center">
-            <div className="relative">
-              <FitnessRing 
-                calories={Math.round((dailyStats?.calories || 0) + pendingCalories)} 
-                goal={dailyStats?.goalCalories || 600}
-                steps={(dailyStats?.steps || 0) + pendingSteps}
-                distance={Number(((dailyStats?.distance || 0) + pendingDistance).toFixed(2))}
-                size={240}
-              />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-                <div className="text-[10px] text-gray-500 font-black uppercase tracking-[.3em] mb-1">Readiness</div>
-                <div className="text-5xl font-black italic text-accent tracking-tighter leading-none">
-                  {readinessScore > 0 ? readinessScore : '--'}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Synapse Sync Ring */}
+            <motion.section 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="flex flex-col gap-6 bg-[var(--bg-card)] p-10 rounded-[3rem] border border-[var(--border-color)] shadow-2xl relative overflow-hidden group h-fit"
+            >
+              <div className="flex justify-center transform lg:scale-110">
+                <div className="relative">
+                  <FitnessRing 
+                    calories={Math.round((dailyStats?.calories || 0) + pendingCalories)} 
+                    goal={dailyStats?.goalCalories || 600}
+                    steps={(dailyStats?.steps || 0) + pendingSteps}
+                    distance={Number(((dailyStats?.distance || 0) + pendingDistance).toFixed(2))}
+                    size={240}
+                  />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+                    <div className="text-[10px] text-gray-500 font-black uppercase tracking-[.3em] mb-1">Readiness</div>
+                    <div className="text-5xl font-black italic text-accent tracking-tighter leading-none">
+                      {readinessScore > 0 ? readinessScore : '--'}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="absolute top-4 right-8 flex items-center gap-1.5">
-            <div className={`w-1.5 h-1.5 rounded-full bg-accent animate-pulse`} />
-            <span className="text-[8px] font-black uppercase tracking-widest text-gray-500">
-              Synapse System: Connected
-            </span>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-4">
-            <button 
-              onClick={() => {
-                setLogType('sleep');
-                setShowLogModal(true);
-              }}
-              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-accent transition-colors bg-white/5 py-2 px-4 rounded-xl border border-white/5 hover:border-accent/20"
-            >
-              <Moon size={12} /> Log Sleep
-            </button>
-            <button 
-              onClick={() => {
-                setLogType('body');
-                setShowLogModal(true);
-              }}
-              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-accent transition-colors bg-white/5 py-2 px-4 rounded-xl border border-white/5 hover:border-accent/20"
-            >
-              <Scale size={12} /> Log Weight
-            </button>
-            <button 
-              onClick={() => {
-                setLogType('hr');
-                setShowLogModal(true);
-              }}
-              className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-accent transition-colors bg-white/5 py-2 px-4 rounded-xl border border-white/5 hover:border-accent/20"
-            >
-              <Heart size={12} /> Log HR
-            </button>
-          </div>
-        </motion.section>
-
-        {/* Step Tracker Card */}
-        <motion.section 
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-[var(--bg-card)] rounded-[2.5rem] p-8 border border-[var(--border-color)] relative overflow-hidden group"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className={`p-3 rounded-2xl ${isTracking ? 'bg-accent/20 text-accent' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'}`}>
-                <ActivityIcon size={24} className={isTracking ? 'animate-pulse' : ''} />
-              </div>
-              <div>
-                <h3 className="text-xl font-black italic uppercase tracking-tighter">Step Tracker Protocol</h3>
-                <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Real-time Biometric Analysis</p>
-              </div>
-            </div>
-            <div className="flex flex-col items-end">
-              <div className={`text-xs font-black uppercase tracking-widest ${isTracking ? 'text-accent' : 'text-gray-600'}`}>
-                {isTracking ? 'ONLINE' : 'OFFLINE'}
-              </div>
-              {permissionGranted === false && (
-                <span className="text-[6px] text-red-500 font-black uppercase mt-1">Sensor Access Denied</span>
-              )}
-            </div>
-          </div>
-
-          {isTracking ? (
-            <div className="space-y-6">
-              <div className="flex items-baseline gap-2">
-                <span className="text-6xl font-black italic uppercase tracking-tighter text-[var(--text-primary)]">
-                  {currentSteps.toLocaleString()}
-                </span>
-                <span className="text-sm font-black italic uppercase tracking-tighter text-gray-500">STEPS</span>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white/5 rounded-2xl p-4">
-                  <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest mb-1">Distance</p>
-                  <p className="text-xl font-black italic uppercase tracking-tighter text-blue-400">
-                    {sessionDistance.toFixed(2)}<span className="text-[10px] ml-1">KM</span>
-                  </p>
+              <div className="absolute top-4 right-8 flex items-center gap-1.5">
+                <div className={`w-1.5 h-1.5 rounded-full bg-accent animate-pulse`} />
+                <span className="text-[8px] font-black uppercase tracking-widest text-gray-500">
+                  Synapse System: Connected
+                </span>
+              </div>
+
+              <div className="flex flex-wrap justify-center gap-4">
+                <button 
+                  onClick={() => {
+                    setLogType('sleep');
+                    setShowLogModal(true);
+                  }}
+                  className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-accent transition-colors bg-white/5 py-2 px-4 rounded-xl border border-white/5 hover:border-accent/20"
+                >
+                  <Moon size={12} /> Log Sleep
+                </button>
+                <button 
+                  onClick={() => {
+                    setLogType('body');
+                    setShowLogModal(true);
+                  }}
+                  className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-accent transition-colors bg-white/5 py-2 px-4 rounded-xl border border-white/5 hover:border-accent/20"
+                >
+                  <Scale size={12} /> Log Weight
+                </button>
+                <button 
+                  onClick={() => {
+                    setLogType('hr');
+                    setShowLogModal(true);
+                  }}
+                  className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-accent transition-colors bg-white/5 py-2 px-4 rounded-xl border border-white/5 hover:border-accent/20"
+                >
+                  <Heart size={12} /> Log HR
+                </button>
+              </div>
+            </motion.section>
+
+            {/* Step Tracker Card */}
+            <motion.section 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-[var(--bg-card)] rounded-[2.5rem] p-8 border border-[var(--border-color)] relative overflow-hidden group flex flex-col justify-center"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className={`p-3 rounded-2xl ${isTracking ? 'bg-accent/20 text-accent' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'}`}>
+                    <ActivityIcon size={24} className={isTracking ? 'animate-pulse' : ''} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black italic uppercase tracking-tighter">Step Tracker Protocol</h3>
+                    <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">Real-time Biometric Analysis</p>
+                  </div>
                 </div>
-                <div className="bg-white/5 rounded-2xl p-4">
-                  <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest mb-1">Burned</p>
-                  <p className="text-xl font-black italic uppercase tracking-tighter text-orange-500">
-                    {sessionCalories.toFixed(1)}<span className="text-[10px] ml-1">KCAL</span>
-                  </p>
+                <div className="flex flex-col items-end">
+                  <div className={`text-xs font-black uppercase tracking-widest ${isTracking ? 'text-accent' : 'text-gray-600'}`}>
+                    {isTracking ? 'ONLINE' : 'OFFLINE'}
+                  </div>
                 </div>
               </div>
 
-              <button 
-                onClick={stopTracking}
-                className="w-full bg-gray-800 hover:bg-gray-700 py-4 rounded-xl flex items-center justify-center text-white font-black italic uppercase tracking-widest transition-all active:scale-95 text-xs"
-              >
-                Terminate Protocol
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed">
-                Engage motion sensors to track your movement. System accurately calculates distance and metabolic burn in real-time.
-              </p>
-              <button 
-                onClick={startTracking}
-                className="group relative w-full bg-accent hover:bg-accent/90 py-5 rounded-2xl flex items-center justify-center text-black font-black italic uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-accent/20 overflow-hidden"
-              >
-                <motion.div 
-                  initial={{ x: "-100%" }}
-                  whileHover={{ x: "100%" }}
-                  transition={{ duration: 0.5 }}
-                  className="absolute inset-0 bg-white/20 skew-x-12"
-                />
-                <Play size={18} className="mr-2 fill-current" /> Initialize Tracker
-              </button>
-            </div>
-          )}
-          
-          <div className="absolute -bottom-8 -right-8 opacity-5 rotate-12 group-hover:rotate-0 transition-transform duration-700">
-            <ActivityIcon size={120} />
-          </div>
-        </motion.section>
-
-        {/* Health Metrics Dashboard */}
-        <motion.section 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="grid grid-cols-2 gap-4"
-        >
-          <MetricCard 
-            label="Resting HR"
-            value={`${dailyStats?.restingHeartRate || 0} bpm`}
-            change={dailyStats ? calculateChange(dailyStats.restingHeartRate, dailyStats.lastWeekRestingHeartRate) : 0}
-            icon={<Heart className="text-red-500" size={18} />}
-            isSynced={true}
-            loading={statsLoading}
-          />
-          <MetricCard 
-            label="Sleep Score"
-            value={dailyStats?.sleepScore ? `${dailyStats.sleepScore}/100` : '--'}
-            change={dailyStats ? calculateChange(dailyStats.sleepScore, dailyStats.lastWeekSleepScore) : 0}
-            icon={<Moon className="text-yellow-400" size={18} />}
-            isSynced={!!dailyStats?.sleepScore}
-            loading={statsLoading}
-          />
-          <MetricCard 
-            label="Steps"
-            value={((dailyStats?.steps || 0) + pendingSteps).toLocaleString()}
-            change={dailyStats ? calculateChange((dailyStats.steps || 0) + pendingSteps, dailyStats.lastWeekSteps) : 0}
-            icon={<Footprints className="text-accent" size={18} />}
-            isSynced={true}
-            loading={statsLoading}
-          />
-          <MetricCard 
-            label="Calories"
-            value={`${Math.round((dailyStats?.calories || 0) + pendingCalories).toLocaleString()} kcal`}
-            change={dailyStats ? calculateChange((dailyStats.calories || 0) + pendingCalories, dailyStats.lastWeekCalories) : 0}
-            icon={<Flame className="text-orange-500" size={18} />}
-            isSynced={true}
-            loading={statsLoading}
-          />
-        </motion.section>
-
-        {/* Recent Workouts Summary */}
-        <motion.section
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-[.2em]">Protocol History</h3>
-            <div className="flex gap-1">
-              <div className="w-1 h-1 rounded-full bg-accent" />
-              <div className="w-1 h-1 rounded-full bg-gray-800" />
-            </div>
-          </div>
-          <div className="space-y-3">
-            {workoutsLoading ? (
-              [1, 2, 3].map(i => (
-                <div key={i} className="bg-[#111]/80 backdrop-blur-sm border border-white/5 rounded-3xl p-5 flex items-center gap-5 shadow-xl">
-                  <Skeleton className="w-12 h-12 rounded-2xl" />
-                  <div className="flex-1">
-                    <Skeleton className="w-32 h-4 mb-2" />
-                    <Skeleton className="w-20 h-2" />
+              {isTracking ? (
+                <div className="space-y-6">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-6xl font-black italic uppercase tracking-tighter text-[var(--text-primary)]">
+                      {currentSteps.toLocaleString()}
+                    </span>
+                    <span className="text-sm font-black italic uppercase tracking-tighter text-gray-500">STEPS</span>
                   </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/5 rounded-2xl p-4">
+                      <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest mb-1">Distance</p>
+                      <p className="text-xl font-black italic uppercase tracking-tighter text-blue-400">
+                        {sessionDistance.toFixed(2)}<span className="text-[10px] ml-1">KM</span>
+                      </p>
+                    </div>
+                    <div className="bg-white/5 rounded-2xl p-4">
+                      <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest mb-1">Burned</p>
+                      <p className="text-xl font-black italic uppercase tracking-tighter text-orange-500">
+                        {sessionCalories.toFixed(1)}<span className="text-[10px] ml-1">KCAL</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={stopTracking}
+                    className="w-full bg-gray-800 hover:bg-gray-700 py-4 rounded-xl flex items-center justify-center text-white font-black italic uppercase tracking-widest transition-all active:scale-95 text-xs"
+                  >
+                    Terminate Protocol
+                  </button>
                 </div>
-              ))
-            ) : workouts.length > 0 ? (
-              workouts.slice(0, 3).map((w, i) => (
-                <motion.div 
-                  key={w.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  onClick={() => navigate('/history')}
-                  className="bg-[#111]/80 backdrop-blur-sm border border-white/5 rounded-3xl p-5 flex items-center gap-5 group cursor-pointer hover:border-accent/30 transition-all shadow-xl"
-                >
-                  <div className="w-12 h-12 bg-gray-900 rounded-2xl flex items-center justify-center text-blue-400 group-hover:text-accent transition-colors">
-                    <HistoryIcon size={20} />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-sm font-black italic uppercase tracking-tight text-white/90 group-hover:text-accent transition-colors">
-                      {w.exercises?.[0]?.name || 'Synapse Session'}
-                    </h4>
-                    <div className="flex items-center gap-3 mt-1">
-                      <div className="flex items-center gap-1">
-                        <Clock size={10} className="text-gray-600" />
-                        <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">
-                          {Math.floor(w.duration / 60)} min
-                        </span>
+              ) : (
+                <div className="space-y-6">
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed">
+                    Engage motion sensors to track your movement. System accurately calculates distance and metabolic burn in real-time.
+                  </p>
+                  <button 
+                    onClick={startTracking}
+                    className="group relative w-full bg-accent hover:bg-accent/90 py-5 rounded-2xl flex items-center justify-center text-black font-black italic uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-accent/20 overflow-hidden"
+                  >
+                    <motion.div 
+                      initial={{ x: "-100%" }}
+                      whileHover={{ x: "100%" }}
+                      transition={{ duration: 0.5 }}
+                      className="absolute inset-0 bg-white/20 skew-x-12"
+                    />
+                    <Play size={18} className="mr-2 fill-current" /> Initialize Tracker
+                  </button>
+                </div>
+              )}
+            </motion.section>
+          </div>
+
+          {/* Health Metrics Dashboard - 4 cols on tablet, 2 on mobile */}
+          <motion.section 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-4"
+          >
+            <MetricCard 
+              label="Resting HR"
+              value={`${dailyStats?.restingHeartRate || 0} bpm`}
+              change={dailyStats ? calculateChange(dailyStats.restingHeartRate, dailyStats.lastWeekRestingHeartRate) : 0}
+              icon={<Heart className="text-red-500" size={18} />}
+              isSynced={true}
+              loading={statsLoading}
+            />
+            <MetricCard 
+              label="Sleep Score"
+              value={dailyStats?.sleepScore ? `${dailyStats.sleepScore}/100` : '--'}
+              change={dailyStats ? calculateChange(dailyStats.sleepScore, dailyStats.lastWeekSleepScore) : 0}
+              icon={<Moon className="text-yellow-400" size={18} />}
+              isSynced={!!dailyStats?.sleepScore}
+              loading={statsLoading}
+            />
+            <MetricCard 
+              label="Steps"
+              value={((dailyStats?.steps || 0) + pendingSteps).toLocaleString()}
+              change={dailyStats ? calculateChange((dailyStats.steps || 0) + pendingSteps, dailyStats.lastWeekSteps) : 0}
+              icon={<Footprints className="text-accent" size={18} />}
+              isSynced={true}
+              loading={statsLoading}
+            />
+            <MetricCard 
+              label="Calories"
+              value={`${Math.round((dailyStats?.calories || 0) + pendingCalories).toLocaleString()} kcal`}
+              change={dailyStats ? calculateChange((dailyStats.calories || 0) + pendingCalories, dailyStats.lastWeekCalories) : 0}
+              icon={<Flame className="text-orange-500" size={18} />}
+              isSynced={true}
+              loading={statsLoading}
+            />
+          </motion.section>
+
+          {/* Large Volume Trend Chart (Wider on desktop) */}
+          <motion.section
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7 }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-[.2em]">Synapse Volume Protocol</h3>
+              <div className="flex gap-1">
+                <div className="w-1 h-1 rounded-full bg-accent" />
+                <div className="w-2 h-1 rounded-full bg-accent/30" />
+              </div>
+            </div>
+            <div className="bg-[var(--bg-card)] rounded-[2.5rem] p-8 border border-[var(--border-color)]">
+              <div className="flex justify-between items-end mb-8">
+                <div>
+                  <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Volume trend (bi-weekly)</p>
+                  <div className="text-3xl font-black italic uppercase tracking-tighter">Performance Gainz</div>
+                </div>
+                <div className="text-accent text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                  <TrendingUp size={16} /> +12.4%
+                </div>
+              </div>
+              <div className="h-48 flex items-end gap-3 px-2">
+                {[0, 1, 2, 3, 4, 5, 6].map((_, i) => {
+                  const h = stats.normalizedVolumes[i] || 0;
+                  return (
+                    <div key={i} className="flex-1 bg-[var(--bg-secondary)] rounded-2xl relative group h-full">
+                      <motion.div 
+                        initial={{ height: 0 }}
+                        animate={{ height: `${Math.max(10, h)}%` }}
+                        transition={{ duration: 1, delay: i * 0.1 }}
+                        className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-accent/80 to-accent rounded-2xl shadow-[0_0_20px_rgba(45,212,191,0.2)]"
+                      />
+                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100">
+                        <span className="text-[10px] bg-black text-white px-2 py-1 rounded-lg font-black italic">{Math.round(h)}%</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar size={10} className="text-gray-600" />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.section>
+        </div>
+
+        {/* Right Column: Secondary Data & History (Sticky on Desktop) */}
+        <aside className="lg:col-span-12 xl:col-span-4 space-y-8">
+          {/* Quick Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-4">
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6 }}
+              className="bg-[var(--bg-card)] p-8 rounded-[2.5rem] border border-[var(--border-color)] flex items-center justify-between h-40"
+            >
+              <div>
+                <div className="flex items-center gap-2 text-[8px] text-gray-500 font-black uppercase tracking-[.2em] mb-4">
+                  <Flame size={12} className="text-accent" /> Active Streak
+                </div>
+                {statsLoading ? <Skeleton className="w-16 h-10" /> : <h3 className="text-5xl font-black italic uppercase tracking-tighter leading-none">{personalBests?.currentStreak || 0}</h3>}
+              </div>
+              <div className="w-20 h-20 rounded-full border border-accent/10 flex items-center justify-center relative">
+                <Flame size={40} className="text-accent absolute animate-pulse opacity-20 blur-md" />
+                <Flame size={40} className="text-accent relative z-10" />
+              </div>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.65 }}
+              className="bg-[var(--bg-card)] p-8 rounded-[2.5rem] border border-[var(--border-color)] h-40"
+            >
+              <div className="flex items-center gap-2 text-[8px] text-gray-500 font-black uppercase tracking-[.2em] mb-4">
+                <Dumbbell size={12} className="text-blue-400" /> Heaviest Lift
+              </div>
+              <h3 className="text-5xl font-black italic uppercase tracking-tighter leading-none text-blue-400">
+                {stats.heaviestWeight}<span className="text-sm ml-2 text-gray-500 font-bold">LBS</span>
+              </h3>
+            </motion.div>
+          </div>
+
+          {/* History Widget */}
+          <motion.section
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="sticky top-8"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-[.2em]">Protocol Registry</h3>
+              <button 
+                onClick={() => navigate('/history')}
+                className="text-[8px] text-accent font-black uppercase tracking-widest hover:underline"
+              >
+                View Full Archive
+              </button>
+            </div>
+            <div className="space-y-3">
+              {workoutsLoading ? (
+                [1, 2, 3, 4].map(i => (
+                  <div key={i} className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 flex items-center gap-5">
+                    <Skeleton className="w-12 h-12 rounded-2xl" />
+                    <div className="flex-1">
+                      <Skeleton className="w-32 h-4 mb-2" />
+                      <Skeleton className="w-20 h-2" />
+                    </div>
+                  </div>
+                ))
+              ) : workouts.length > 0 ? (
+                workouts.slice(0, 5).map((w, i) => (
+                  <motion.div 
+                    key={w.id}
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    onClick={() => navigate('/history')}
+                    className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-5 flex items-center gap-5 group cursor-pointer hover:border-accent/50 transition-all shadow-lg hover:shadow-accent/5"
+                  >
+                    <div className="w-12 h-12 bg-[var(--bg-secondary)] rounded-2xl flex items-center justify-center text-accent/60 group-hover:text-accent transition-colors">
+                      <ActivityIcon size={20} />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-sm font-black italic uppercase tracking-tight text-[var(--text-primary)] group-hover:text-accent transition-colors">
+                        {w.exercises?.[0]?.name || 'Synapse Session'}
+                      </h4>
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">
+                          {Math.floor(w.duration / 60)}m duration
+                        </span>
+                        <div className="w-1 h-1 rounded-full bg-gray-700" />
                         <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">
                           {w.timestamp?.toDate 
-                            ? new Date(w.timestamp.toDate()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                            ? new Date(w.timestamp.toDate()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                             : 'Today'}
                         </span>
                       </div>
                     </div>
-                  </div>
-                  <ChevronRight size={14} className="text-gray-700 group-hover:text-accent transition-colors" />
-                </motion.div>
-              ))
-            ) : (
-              <div className="bg-[var(--bg-card)] p-8 rounded-[2.5rem] border border-dashed border-gray-800 text-center">
-                <p className="text-[10px] text-gray-600 font-black uppercase tracking-widest">No sessions recorded in synapse archive</p>
-              </div>
-            )}
-          </div>
-        </motion.section>
-
-        {/* Quick Stats Grid */}
-        <motion.section 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="space-y-4"
-        >
-          <div className="bg-[var(--bg-card)] p-6 rounded-[2.5rem] border border-[var(--border-color)] flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2 text-[8px] text-gray-500 font-black uppercase tracking-[.2em] mb-4">
-                <Flame size={12} className="text-accent" /> Active Streak
-              </div>
-              {statsLoading ? <Skeleton className="w-16 h-10" /> : <h3 className="text-5xl font-black italic uppercase tracking-tighter leading-none">{personalBests?.currentStreak || 0}</h3>}
+                    <ChevronRight size={14} className="text-gray-700 group-hover:text-accent transition-colors" />
+                  </motion.div>
+                ))
+              ) : (
+                <div className="bg-[var(--bg-card)] p-8 rounded-[2.5rem] border border-dashed border-[var(--border-color)] text-center">
+                  <p className="text-[10px] text-gray-600 font-black uppercase tracking-widest">Archive Empty</p>
+                </div>
+              )}
             </div>
-            {personalBests?.currentStreak && personalBests.currentStreak > 0 && (
-              <div className="w-16 h-16 rounded-full border border-accent/20 flex items-center justify-center relative">
-                <Flame size={32} className="text-accent absolute animate-pulse opacity-50 blur-sm" />
-                <Flame size={32} className="text-accent relative z-10" />
-              </div>
-            )}
-          </div>
-
-          <div className="bg-[var(--bg-card)] p-6 rounded-[2.5rem] border border-[var(--border-color)]">
-            <div className="flex items-center gap-2 text-[8px] text-gray-500 font-black uppercase tracking-[.2em] mb-4">
-              <TrendingUp size={12} /> Total Workouts
-            </div>
-            {workoutsLoading ? <Skeleton className="w-16 h-10" /> : <h3 className="text-5xl font-black italic uppercase tracking-tighter leading-none">{stats.totalWorkouts}</h3>}
-          </div>
-          
-          <div className="bg-[var(--bg-card)] p-6 rounded-[2.5rem] border border-[var(--border-color)]">
-            <div className="flex items-center gap-2 text-[8px] text-gray-500 font-black uppercase tracking-[.2em] mb-4">
-              <Calendar size={12} /> Last Workout
-            </div>
-            <h3 className="text-2xl font-black italic uppercase tracking-tighter leading-none mb-1">
-              {stats.lastWorkout ? (
-                stats.lastWorkout.timestamp?.toDate 
-                  ? new Date(stats.lastWorkout.timestamp.toDate()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                  : 'Syncing...'
-              ) : 'No Session'}
-            </h3>
-            <p className="text-[8px] text-accent uppercase font-black tracking-widest">
-              {stats.lastWorkout?.exercises[0]?.name || 'Initiate Session'}
-            </p>
-          </div>
-
-          <div className="bg-[var(--bg-card)] p-6 rounded-[2.5rem] border border-[var(--border-color)] relative overflow-hidden">
-            <div className="flex items-center gap-2 text-[8px] text-gray-500 font-black uppercase tracking-[.2em] mb-4">
-              <Dumbbell size={12} /> Heaviest Lift
-            </div>
-            <h3 className="text-5xl font-black italic uppercase tracking-tighter leading-none text-blue-400">
-              {stats.heaviestWeight}<span className="text-sm ml-2 text-gray-500 font-bold">LBS</span>
-            </h3>
-            <div className="absolute bottom-[-10px] right-[-10px] opacity-5">
-              <Dumbbell size={100} />
-            </div>
-          </div>
-        </motion.section>
-
-        {/* Goal Progress (Refined) */}
-        <motion.section
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-[.2em]">Synapse Growth</h3>
-            <div className="flex gap-1">
-              <div className="w-1 h-1 rounded-full bg-accent" />
-              <div className="w-1 h-1 rounded-full bg-gray-800" />
-            </div>
-          </div>
-          <div className="bg-[var(--bg-card)] rounded-[2.5rem] p-6 border border-[var(--border-color)]">
-            <div className="flex justify-between items-end mb-4">
-              <div>
-                <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest mb-1">Volume Trend (KG)</p>
-                <div className="text-xl font-black italic uppercase tracking-tighter">Accelerating</div>
-              </div>
-              <div className="text-accent text-[8px] font-black uppercase tracking-widest">+12%</div>
-            </div>
-            <div className="h-24 flex items-end gap-2 px-2">
-              {[0, 0, 0, 0, 0, 0, 0].map((_, i) => {
-                const h = stats.normalizedVolumes[i] || 0;
-                return (
-                  <div key={i} className="flex-1 bg-[var(--bg-secondary)] rounded-lg relative group h-full">
-                    <motion.div 
-                      initial={{ height: 0 }}
-                      animate={{ height: `${Math.max(5, h)}%` }}
-                      className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-600/50 to-accent/50 rounded-lg"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="text-[6px] text-white font-bold">{Math.round(h)}%</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </motion.section>
+          </motion.section>
+        </aside>
       </motion.main>
 
       <AnimatePresence>

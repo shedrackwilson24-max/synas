@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -62,16 +62,35 @@ const LoadingFallback = () => (
 );
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading, isAuthFlow } = useAuth();
+  const { user, profile, loading, isAuthFlow } = useAuth();
+  const location = useLocation();
+
   if (loading) return <LoadingFallback />; 
   if (isAuthFlow) return <Navigate to="/auth" />;
-  return user ? <>{children}</> : <Navigate to="/auth" />;
+  if (!user) return <Navigate to="/auth" />;
+
+  // If user is logged in but hasn't completed setup, redirect to setup
+  if (!profile?.setup_complete && location.pathname !== '/profile-setup') {
+    return <Navigate to="/profile-setup" />;
+  }
+
+  // If user HAS completed setup but is trying to go back to setup, redirect to dashboard
+  if (profile?.setup_complete && location.pathname === '/profile-setup') {
+    return <Navigate to="/dashboard" />;
+  }
+
+  return <>{children}</>;
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading, isAuthFlow } = useAuth();
+  const { user, profile, loading, isAuthFlow } = useAuth();
   if (loading) return <LoadingFallback />;
-  if (user && !isAuthFlow) return <Navigate to="/dashboard" />;
+  
+  if (user && !isAuthFlow) {
+    if (!profile?.setup_complete) return <Navigate to="/profile-setup" />;
+    return <Navigate to="/dashboard" />;
+  }
+  
   return <>{children}</>;
 }
 

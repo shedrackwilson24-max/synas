@@ -19,11 +19,18 @@ service cloud.firestore {
       return data.name is string && data.name.size() > 0 &&
              (!data.keys().hasAny(['email']) || data.email is string) &&
              (!data.keys().hasAny(['photoURL']) || (data.photoURL is string || data.photoURL == null)) &&
-             (!data.keys().hasAny(['provider']) || data.provider is string) &&
              (!data.keys().hasAny(['lastLoginAt']) || data.lastLoginAt is timestamp) &&
              (!data.keys().hasAny(['createdAt']) || data.createdAt is timestamp) &&
-             (!data.keys().hasAny(['fcmTokens']) || data.fcmTokens is list) &&
-             (!data.keys().hasAny(['notificationsEnabled']) || data.notificationsEnabled is bool);
+             (!data.keys().hasAny(['setup_complete']) || data.setup_complete is bool) &&
+             (!data.keys().hasAny(['age']) || data.age is number) &&
+             (!data.keys().hasAny(['weight']) || data.weight is number) &&
+             (!data.keys().hasAny(['height']) || data.height is number) &&
+             (!data.keys().hasAny(['gender']) || data.gender is string) &&
+             (!data.keys().hasAny(['goal']) || data.goal is string) &&
+             (!data.keys().hasAny(['activity_level']) || data.activity_level is string) &&
+             (!data.keys().hasAny(['frequency']) || data.frequency is number) &&
+             (!data.keys().hasAny(['focus_areas']) || data.focus_areas is list) &&
+             (!data.keys().hasAny(['activity_rank']) || data.activity_rank is number);
     }
 
     function isValidWorkout(data) {
@@ -77,16 +84,6 @@ service cloud.firestore {
              (!data.keys().hasAny(['totalWorkouts']) || data.totalWorkouts is number);
     }
 
-    function isValidOTP(data) {
-      return data.email is string && 
-             data.email.size() >= 3 && data.email.size() <= 256 &&
-             data.code is string && 
-             data.code.size() == 6 &&
-             data.expiresAt is string &&
-             data.used is bool &&
-             data.createdAt is timestamp;
-    }
-
     function isValidHabit(data) {
       return data.userId == request.auth.uid &&
              data.name is string && data.name.size() <= 100 &&
@@ -106,9 +103,9 @@ service cloud.firestore {
     }
 
     // 2. Workout Plans Collection
-    match /workoutPlans/{userId} {
-      allow get: if isOwner(userId);
-      allow create, update: if isOwner(userId) && isValidWorkoutPlan(incoming());
+    match /workoutPlans/{planUserId} {
+      allow get: if isSignedIn() && (request.auth.uid == planUserId || (resource != null && resource.data.userId == request.auth.uid));
+      allow create, update: if isSignedIn() && planUserId == request.auth.uid && incoming().userId == request.auth.uid && isValidWorkoutPlan(incoming());
     }
 
     // 3. Workouts History Collection
@@ -128,17 +125,15 @@ service cloud.firestore {
     }
 
     // 5. Personal Bests Collection
-    match /personalBests/{userId} {
-      allow get: if isOwner(userId);
-      allow create, update: if isOwner(userId) && incoming().userId == request.auth.uid;
+    match /personalBests/{pbUserId} {
+      allow get: if isSignedIn() && (request.auth.uid == pbUserId || (resource != null && resource.data.userId == request.auth.uid));
+      allow create: if isSignedIn() && pbUserId == request.auth.uid && incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() && pbUserId == request.auth.uid && incoming().userId == request.auth.uid;
     }
 
-    // 6. OTPs Collection (Forgot Password/Verification)
+    // 6. OTPs Collection (Deprecated)
     match /otps/{otpId} {
-      allow create: if isValidOTP(incoming());
-      // Allow reading only if the unique code and email are provided (handled by query)
-      allow list: if resource.data.code != null; 
-      allow update: if incoming().used == true && incoming().diff(existing()).affectedKeys().hasOnly(['used']);
+      allow read, write: if false;
     }
 
     // 7. Habits Collection
