@@ -79,6 +79,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (!user) return;
     const unsub = onSnapshot(doc(db, 'users', user.uid), (doc) => {
       if (doc.exists()) setProfile(doc.data());
+    }, (err) => {
+      handleFirestoreError(err, OperationType.GET, `users/${user.uid}`);
     });
     return unsub;
   }, [user]);

@@ -338,6 +338,7 @@ export async function logSleep(userId: string, hours: number) {
   const docRef = doc(db, 'sleep_data', docId);
   
   try {
+    // 1. Log detailed sleep entry
     await setDoc(docRef, {
       userId,
       date,
@@ -345,13 +346,30 @@ export async function logSleep(userId: string, hours: number) {
       timestamp: serverTimestamp()
     });
     
-    // Update daily stats sleep score (1-100 scale based on hours)
+    // 2. Update daily stats sleep score (1-100 scale based on hours)
     // Formula: (hours / 8) * 100 capped at 100
     const sleepScore = Math.min(Math.round((hours / 8) * 100), 100);
     const statsRef = doc(db, 'dailyStats', `${userId}_${date}`);
-    await updateDoc(statsRef, { sleepScore, lastUpdated: serverTimestamp() });
     
-    // Recalculate readiness
+    const statsSnap = await getDoc(statsRef);
+    if (statsSnap.exists()) {
+      await updateDoc(statsRef, { sleepScore, lastUpdated: serverTimestamp() });
+    } else {
+      // Initialize with defaults if missing
+      await setDoc(statsRef, {
+        userId,
+        date,
+        calories: 0,
+        goalCalories: 600,
+        steps: 0,
+        distance: 0,
+        restingHeartRate: 0,
+        sleepScore,
+        lastUpdated: serverTimestamp()
+      }, { merge: true });
+    }
+    
+    // 3. Recalculate readiness
     await updateReadinessScore(userId);
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, `sleep_data/${docId}`);

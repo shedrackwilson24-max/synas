@@ -102,6 +102,8 @@
         "distance": { "type": "number" },
         "restingHeartRate": { "type": "number" },
         "sleepScore": { "type": "number" },
+        "appleHealthSynced": { "type": "boolean" },
+        "garminSynced": { "type": "boolean" },
         "lastWeekCalories": { "type": "number" },
         "lastWeekSteps": { "type": "number" },
         "lastWeekRestingHeartRate": { "type": "number" },
@@ -109,6 +111,17 @@
         "lastUpdated": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "date"]
+    },
+    "IntegrationState": {
+      "title": "External Service Integrations",
+      "description": "Status of health service neural links",
+      "type": "object",
+      "properties": {
+        "googleFit": { "type": "boolean" },
+        "appleHealth": { "type": "boolean" },
+        "garmin": { "type": "boolean" },
+        "lastSynced": { "type": "string", "format": "date-time" }
+      }
     },
     "PersonalBests": {
       "title": "Personal Best Records",
@@ -229,6 +242,10 @@
     "/readiness_data/{readinessId}": {
       "schema": "ReadinessData",
       "description": "Dynamic readiness scores"
+    },
+    "/user_integrations/{userId}": {
+      "schema": "IntegrationState",
+      "description": "Health service linkage status"
     }
   }
 }

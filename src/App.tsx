@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -13,15 +13,16 @@ import ErrorBoundary from './components/ErrorBoundary';
 const Auth = lazy(() => import('./components/Auth'));
 const ProfileSetup = lazy(() => import('./components/ProfileSetup'));
 const WorkoutSession = lazy(() => import('./components/WorkoutSession'));
-const Training = lazy(() => import('./components/Training'));
+import Training from './components/Training';
 const Stats = lazy(() => import('./components/Stats'));
 const Profile = lazy(() => import('./components/Profile'));
 const Settings = lazy(() => import('./components/Settings'));
+const AdminPanel = lazy(() => import('./components/AdminPanel'));
 const WorkoutHistory = lazy(() => import('./components/WorkoutHistory'));
 const MainLayout = lazy(() => import('./components/MainLayout'));
 
 const LoadingFallback = () => (
-  <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden">
+  <div className="min-h-screen bg-bg-primary flex flex-col items-center justify-center relative overflow-hidden">
     {/* Background Glow */}
     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-accent/5 blur-[120px] rounded-full" />
     
@@ -111,6 +112,7 @@ function AppRoutes() {
                 <Route path="/stats" element={<Stats />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/admin" element={<AdminPanel />} />
                 <Route path="/history" element={<WorkoutHistory />} />
               </Route>
 

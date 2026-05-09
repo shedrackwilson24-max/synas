@@ -76,7 +76,7 @@ export default function Onboarding() {
           key={`step-${currentSlide}`}
           className="mb-6"
         >
-          <span className="text-[10px] font-bold tracking-[0.2em] text-accent uppercase">Phase 0{currentSlide + 1}</span>
+          <span className="text-[10px] font-bold tracking-[0.2em] text-cyan-400 uppercase">Phase 0{currentSlide + 1}</span>
         </motion.div>
         <AnimatePresence mode="wait">
           <motion.div
@@ -89,7 +89,7 @@ export default function Onboarding() {
           >
             <h1 className="text-5xl font-black leading-none mb-4 italic uppercase tracking-tighter">
               {slides[currentSlide].title.split(' ').slice(0, -1).join(' ')} <br/>
-              <span className="text-accent">{slides[currentSlide].title.split(' ').slice(-1)}</span>
+              <span className="text-indigo-500">{slides[currentSlide].title.split(' ').slice(-1)}</span>
             </h1>
             <p className="text-gray-400 text-xs mb-10 leading-relaxed font-medium max-w-[240px]">
               {slides[currentSlide].description}
@@ -111,7 +111,7 @@ export default function Onboarding() {
               <div 
                 key={idx}
                 className={`h-1 rounded-full transition-all duration-300 ${
-                  currentSlide === idx ? 'w-8 bg-accent' : 'w-2 bg-gray-800'
+                  currentSlide === idx ? 'w-8 bg-indigo-500' : 'w-2 bg-gray-800'
                 }`}
               />
             ))}
@@ -119,9 +119,9 @@ export default function Onboarding() {
 
           <button 
             onClick={handleNext}
-            className="w-14 h-14 bg-accent rounded-full flex items-center justify-center hover:bg-opacity-90 transition-colors shadow-2xl shadow-accent/10"
+            className="w-14 h-14 bg-indigo-600 rounded-full flex items-center justify-center hover:bg-opacity-90 transition-colors shadow-2xl shadow-indigo-500/20"
           >
-            <ChevronRight size={24} className="text-black" />
+            <ChevronRight size={24} className="text-white" />
           </button>
         </div>
       </div>

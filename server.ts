@@ -96,11 +96,66 @@ async function startServer() {
     }
   });
 
-  // API Routes
-  // Note: Standard auth is handled on the client via Firebase SDK.
-  // We keep the diag route for health checks.
-  app.get("/api/health", (req, res) => {
-    res.json({ status: "ok" });
+  // Health Integration Routes
+  app.get("/api/auth/garmin/url", (req, res) => {
+    // Construct the OAuth provider's authorization URL
+    // Garmin typically uses OAuth 1.0a or 2.0. We'll implement 2.0 pattern as it's modern.
+    const params = new URLSearchParams({
+      client_id: process.env.GARMIN_CLIENT_ID || "DEMO_ID",
+      redirect_uri: `${req.protocol}://${req.get("host")}/api/auth/garmin/callback`,
+      response_type: "code",
+      scope: "read,activity:read,daily:read",
+    });
+
+    const authUrl = `https://connect.garmin.com/oauth2-service/oauth2/auth?${params}`;
+    res.json({ url: authUrl });
+  });
+
+  app.get("/api/auth/garmin/callback", async (req, res) => {
+    const { code } = req.query;
+    // In a real app, we would exchange the code for tokens here.
+    // For this context, we'll demonstrate the callback success pattern.
+    
+    res.send(`
+      <html>
+        <body style="background: #000; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh;">
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', provider: 'garmin' }, '*');
+              window.close();
+            } else {
+              window.location.href = '/';
+            }
+          </script>
+          <div style="text-align: center;">
+            <h1 style="color: #4338CA;">Synapse Linked</h1>
+            <p>Garmin data stream established. Closing window...</p>
+          </div>
+        </body>
+      </html>
+    `);
+  });
+
+  // Apple Health Bridge (Simulated for Web)
+  app.post("/api/health/apple/sync", async (req, res) => {
+    const { userId, data } = req.body;
+    if (!userId) return res.status(400).json({ error: "Missing userId" });
+
+    try {
+      const date = new Date().toISOString().split("T")[0];
+      const statsRef = db.collection("dailyStats").doc(`${userId}_${date}`);
+      
+      // Merge Apple Health data into current stats
+      await statsRef.set({
+        ...data,
+        appleHealthSynced: true,
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      res.json({ success: true, message: "Apple Health data ingested" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   // Vite middleware for development

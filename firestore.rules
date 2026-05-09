@@ -51,10 +51,18 @@ service cloud.firestore {
     function isValidDailyStats(data) {
       return data.userId == request.auth.uid &&
              data.date is string &&
-             data.calories is number &&
-             data.goalCalories is number &&
-             data.steps is number &&
-             data.distance is number;
+             (!data.keys().hasAny(['calories']) || data.calories is number) &&
+             (!data.keys().hasAny(['goalCalories']) || data.goalCalories is number) &&
+             (!data.keys().hasAny(['steps']) || data.steps is number) &&
+             (!data.keys().hasAny(['distance']) || data.distance is number) &&
+             (!data.keys().hasAny(['appleHealthSynced']) || data.appleHealthSynced is bool) &&
+             (!data.keys().hasAny(['garminSynced']) || data.garminSynced is bool);
+    }
+
+    function isValidIntegrationState(data) {
+      return (!data.keys().hasAny(['googleFit']) || data.googleFit is bool) &&
+             (!data.keys().hasAny(['appleHealth']) || data.appleHealth is bool) &&
+             (!data.keys().hasAny(['garmin']) || data.garmin is bool);
     }
 
     function isValidSleepData(data) {
@@ -96,32 +104,55 @@ service cloud.firestore {
              data.description is string && data.description.size() <= 1000;
     }
 
+    function isValidWaitlist(data) {
+      return data.email is string && data.email.size() > 0 &&
+             data.timestamp == request.time &&
+             (!data.keys().hasAny(['source']) || data.source is string);
+    }
+
+    function isValidFeedback(data) {
+      return data.userEmail is string &&
+             data.timestamp == request.time &&
+             (!data.keys().hasAny(['rating']) || data.rating is number) &&
+             (!data.keys().hasAny(['devices']) || data.devices is string) &&
+             (!data.keys().hasAny(['desiredFeatures']) || data.desiredFeatures is string);
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'shedrackwilson24@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
     // 1. Users Collection
     match /users/{userId} {
-      allow get: if isSignedIn() && (request.auth.uid == userId || exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
       allow create, update: if isOwner(userId) && isValidUser(incoming());
     }
 
     // 2. Workout Plans Collection
     match /workoutPlans/{planUserId} {
-      allow get: if isSignedIn() && (request.auth.uid == planUserId || (resource != null && resource.data.userId == request.auth.uid));
+      allow get: if isSignedIn() && (request.auth.uid == planUserId || (resource != null && resource.data.userId == request.auth.uid) || isAdmin());
+      allow list: if isAdmin();
       allow create, update: if isSignedIn() && planUserId == request.auth.uid && incoming().userId == request.auth.uid && isValidWorkoutPlan(incoming());
     }
 
     // 3. Workouts History Collection
     match /workouts/{workoutId} {
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow get: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow get: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || isAdmin());
       allow create: if isSignedIn() && incoming().userId == request.auth.uid;
       allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 
     // 4. Daily Stats Collection
     match /dailyStats/{statId} {
-      allow get: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
-      allow update: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow get: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidDailyStats(incoming());
+      allow update: if isSignedIn() && (resource != null && resource.data.userId == request.auth.uid) && isValidDailyStats(incoming());
     }
 
     // 5. Personal Bests Collection
@@ -173,6 +204,24 @@ service cloud.firestore {
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow get: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
       allow create, update: if isSignedIn() && (incoming() == null || incoming().userId == request.auth.uid) && isValidReadinessData(incoming());
+    }
+
+    // 12. Waitlist Collection
+    match /waitlist/{entryId} {
+      allow create: if isValidWaitlist(incoming());
+      allow get, list: if isAdmin();
+    }
+
+    // 13. Feedback Collection
+    match /feedback/{feedbackId} {
+      allow create: if isSignedIn() && isValidFeedback(incoming());
+      allow get, list: if isAdmin();
+    }
+
+    // 14. User Integrations
+    match /user_integrations/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow create, update: if isOwner(userId) && isValidIntegrationState(incoming());
     }
   }
 }

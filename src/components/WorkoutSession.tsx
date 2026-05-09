@@ -18,7 +18,8 @@ import {
   Flame,
   Sparkles,
   Star,
-  Zap
+  Zap,
+  RefreshCw
 } from 'lucide-react';
 import { addDoc, collection, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
@@ -68,6 +69,8 @@ interface Set {
   isCompleted: boolean;
   type: 'working' | 'warmup' | 'dropset';
   rpe?: number;
+  notes?: string;
+  error?: string;
 }
 
 interface Exercise {
@@ -331,10 +334,35 @@ export default function WorkoutSession() {
   const updateSet = (exerciseIndex: number, setIndex: number, field: keyof Set, value: any) => {
     const newExercises = [...exercises];
     const currentSet = newExercises[exerciseIndex].sets[setIndex];
+    
+    // Validation logic
+    let error = '';
+    if (field === 'weight') {
+      const weight = parseFloat(value);
+      if (isNaN(weight) || weight < 0) error = 'Invalid Weight';
+      if (weight > 1000) error = 'Weight exceeds limit';
+    } else if (field === 'reps') {
+      const reps = parseInt(value);
+      if (isNaN(reps) || reps < 0) error = 'Invalid Reps';
+      if (reps > 999) error = 'Reps exceed limit';
+    } else if (field === 'rpe') {
+      const rpe = value === '' ? undefined : parseFloat(value);
+      if (rpe !== undefined && (isNaN(rpe) || rpe < 0 || rpe > 10)) {
+        error = 'RPE must be 0-10';
+      }
+    }
+
     (currentSet as any)[field] = value;
+    currentSet.error = error;
     
     // Trigger rest timer when marking as completed
     if (field === 'isCompleted' && value === true) {
+      if (currentSet.error) {
+        addNotification('info', 'Validation Error', currentSet.error);
+        (currentSet as any)[field] = false;
+        setExercises(newExercises);
+        return;
+      }
       setRestSeconds(restDuration);
       restEndTimeRef.current = Date.now() + restDuration * 1000;
       setIsRestPaused(false);
@@ -438,84 +466,95 @@ export default function WorkoutSession() {
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] p-6 pt-12 text-center"
+        className="min-h-screen bg-bg-primary text-text-primary p-8 pt-20 text-center"
       >
-        <header className="mb-10">
-          <div className="w-20 h-20 bg-accent/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-accent/20">
-            <Trophy size={40} className="text-accent" />
+        <header className="mb-14">
+          <div className="w-24 h-24 neural-gradient rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-xl shadow-brand-primary/20 relative">
+            <Trophy size={48} className="text-white relative z-10" />
+            <motion.div 
+              animate={{ scale: [1, 1.2, 1], rotate: [0, 180, 360] }}
+              transition={{ duration: 10, repeat: Infinity }}
+              className="absolute inset-0 border-2 border-white/20 border-dashed rounded-[2.5rem]"
+            />
           </div>
-          <h1 className="text-4xl font-black italic uppercase tracking-tighter mb-2">Workout<br/>Complete!</h1>
-          <p className="text-xs text-[var(--text-secondary)] font-bold uppercase tracking-widest">You just crushed your session.</p>
+          <h1 className="text-5xl font-bold italic uppercase tracking-tighter mb-4 font-display leading-none">Protocol<br/><span className="neural-text-gradient">Finalized</span></h1>
+          <p className="text-[10px] text-brand-primary font-bold uppercase tracking-[0.4em] font-display">Optimization Successful</p>
         </header>
 
-        <div className="grid grid-cols-2 gap-4 mb-10">
-          <div className="bg-[var(--bg-card)] p-6 rounded-[2.5rem] border border-[var(--border-color)]">
-            <div className="flex flex-col items-center gap-2">
-              <Clock size={16} className="text-accent" />
-              <div className="text-3xl font-black italic uppercase tracking-tighter">{Math.floor(summaryData.duration / 60)}</div>
-              <p className="text-[10px] text-[var(--text-secondary)] font-black uppercase tracking-widest">Minutes</p>
+        <div className="grid grid-cols-2 gap-6 mb-14">
+          <div className="bg-bg-card p-8 rounded-[3rem] border border-border-color shadow-sm relative group">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                <Clock size={20} />
+              </div>
+              <div className="text-4xl font-bold italic uppercase tracking-tighter font-display text-text-primary">{Math.floor(summaryData.duration / 60)}</div>
+              <p className="text-[10px] text-text-secondary font-bold uppercase tracking-[0.2em] font-display">Temporal Depth</p>
             </div>
           </div>
-          <div className="bg-[var(--bg-card)] p-6 rounded-[2.5rem] border border-[var(--border-color)]">
-            <div className="flex flex-col items-center gap-2">
-              <Flame size={16} className="text-orange-500" />
-              <div className="text-3xl font-black italic uppercase tracking-tighter">{summaryData.streaks.current}</div>
-              <p className="text-[10px] text-[var(--text-secondary)] font-black uppercase tracking-widest">Day Streak</p>
+          <div className="bg-bg-card p-8 rounded-[3rem] border border-border-color shadow-sm relative group">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-brand-vibrant/10 flex items-center justify-center text-brand-vibrant">
+                <Flame size={20} />
+              </div>
+              <div className="text-4xl font-bold italic uppercase tracking-tighter font-display text-text-primary">{summaryData.streaks.current}</div>
+              <p className="text-[10px] text-text-secondary font-bold uppercase tracking-[0.2em] font-display">Neural Streak</p>
             </div>
           </div>
-          <div className="bg-[var(--bg-card)] p-6 rounded-[2.5rem] border border-[var(--border-color)]">
-            <div className="flex flex-col items-center gap-2">
-              <Trophy size={16} className="text-blue-400" />
-              <div className="text-3xl font-black italic uppercase tracking-tighter">{summaryData.totalVolume.toLocaleString()}</div>
-              <p className="text-[10px] text-[var(--text-secondary)] font-black uppercase tracking-widest">Total Weight</p>
+          <div className="bg-bg-card p-8 rounded-[3rem] border border-border-color shadow-sm relative group">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-brand-cyan/10 flex items-center justify-center text-brand-cyan">
+                <Zap size={20} />
+              </div>
+              <div className="text-4xl font-bold italic uppercase tracking-tighter font-display text-text-primary">{summaryData.totalVolume.toLocaleString()}</div>
+              <p className="text-[10px] text-text-secondary font-bold uppercase tracking-[0.2em] font-display">Payload Mass</p>
             </div>
           </div>
-          <div className="bg-[var(--bg-card)] p-6 rounded-[2.5rem] border border-[var(--border-color)]">
-            <div className="flex flex-col items-center gap-2">
-              <Check size={16} className="text-green-400" />
-              <div className="text-3xl font-black italic uppercase tracking-tighter">{summaryData.exerciseCount}</div>
-              <p className="text-[10px] text-[var(--text-secondary)] font-black uppercase tracking-widest">Exercises</p>
+          <div className="bg-bg-card p-8 rounded-[3rem] border border-border-color shadow-sm relative group">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                <Check size={20} />
+              </div>
+              <div className="text-4xl font-bold italic uppercase tracking-tighter font-display text-text-primary">{summaryData.exerciseCount}</div>
+              <p className="text-[10px] text-text-secondary font-bold uppercase tracking-[0.2em] font-display">Modules Sync'd</p>
             </div>
           </div>
         </div>
 
         {(summaryData.newPBs.length > 0 || summaryData.exercisePBs.length > 0) && (
           <motion.section 
-            initial={{ scale: 0.9, opacity: 0 }}
+            initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="mb-10 bg-accent/10 border border-accent/20 p-8 rounded-[3rem] relative overflow-hidden"
+            className="mb-14 bg-bg-secondary border border-brand-primary/20 p-10 rounded-[4rem] relative overflow-hidden group shadow-2xl"
           >
-            <div className="absolute top-0 right-0 p-4 opacity-20 rotate-12">
-              <Sparkles size={60} className="text-accent" />
-            </div>
+            <div className="absolute inset-0 bg-brand-primary/5 blur-3xl rounded-full scale-150 group-hover:scale-175 transition-transform duration-1000" />
             
             <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-6">
-                <Star size={16} className="text-accent fill-current" />
-                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-accent">Personal Records Smashed</h2>
+              <div className="flex items-center justify-center gap-3 mb-8">
+                <Star size={20} className="text-brand-primary fill-current animate-pulse" />
+                <h2 className="text-[12px] font-bold uppercase tracking-[0.5em] text-brand-primary font-display">Neural Peaks Detected</h2>
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap justify-center gap-4">
                 {summaryData.newPBs.map((pb: string, i: number) => (
                   <motion.div 
                     key={`gen-${i}`}
-                    initial={{ x: -10, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: i * 0.1 }}
-                    className="px-4 py-2 bg-accent text-black text-[10px] font-black uppercase tracking-widest rounded-xl flex items-center gap-2 border border-accent"
+                    className="px-6 py-3 neural-gradient text-white text-[10px] font-bold uppercase tracking-widest rounded-2xl flex items-center gap-3 shadow-lg font-display"
                   >
-                    <Trophy size={12} /> {pb}
+                    <Trophy size={14} /> {pb}
                   </motion.div>
                 ))}
                 {summaryData.exercisePBs.map((pb: string, i: number) => (
                   <motion.div 
                     key={`ex-${i}`}
-                    initial={{ x: -10, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: (summaryData.newPBs.length + i) * 0.1 }}
-                    className="px-4 py-2 bg-black border border-accent/40 text-accent text-[10px] font-black uppercase tracking-widest rounded-xl flex items-center gap-2"
+                    className="px-6 py-3 bg-bg-card border border-brand-primary/30 text-brand-primary text-[10px] font-bold uppercase tracking-widest rounded-2xl flex items-center gap-3 font-display hover:border-brand-primary/60 transition-colors"
                   >
-                    <Dumbbell size={12} /> PB: {pb}
+                    <Dumbbell size={14} /> PB: {pb}
                   </motion.div>
                 ))}
               </div>
@@ -523,55 +562,57 @@ export default function WorkoutSession() {
           </motion.section>
         )}
 
-        <section className="mb-10 text-left">
-          <h2 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] mb-6 ml-2">Training Logs</h2>
-          <div className="space-y-6">
+        <section className="mb-14 text-left">
+          <h2 className="text-[10px] text-text-secondary/40 font-bold uppercase tracking-[0.4em] mb-8 ml-4 font-display">Module Execution Logs</h2>
+          <div className="space-y-8">
             {summaryData.exercises.map((exercise: any, i: number) => {
               const isPB = summaryData.exercisePBs?.includes(exercise.name);
               return (
-                <div key={i} className="bg-[var(--bg-card)] rounded-3xl border border-[var(--border-color)] overflow-hidden">
-                  <div className="p-5 border-b border-[var(--border-color)] flex items-center justify-between bg-black/20">
-                    <div className="flex items-center gap-3">
-                      <Dumbbell size={16} className={isPB ? "text-accent animate-pulse" : "text-[var(--text-secondary)]"} />
-                      <h4 className="font-black italic uppercase tracking-tighter text-sm">
+                <div key={i} className="bg-bg-card rounded-[2.5rem] border border-border-color overflow-hidden group hover:border-brand-primary/20 transition-all shadow-sm">
+                  <div className="p-6 border-b border-border-color flex items-center justify-between bg-bg-secondary/50">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-inner ${isPB ? "bg-brand-primary/10 text-brand-primary" : "bg-bg-primary text-text-secondary/40"}`}>
+                        <Dumbbell size={18} className={isPB ? "animate-pulse" : ""} />
+                      </div>
+                      <h4 className="font-bold italic uppercase tracking-tight text-lg text-text-primary font-display">
                         {exercise.name}
-                        {isPB && <span className="ml-2 text-[8px] bg-accent text-black px-2 py-0.5 rounded italic not-italic">NEW PB</span>}
+                        {isPB && <span className="ml-3 text-[9px] bg-brand-primary text-white px-3 py-1 rounded-full italic not-italic tracking-widest shadow-lg">PEAK</span>}
                       </h4>
                     </div>
-                    <span className="text-[8px] text-gray-600 font-black uppercase tracking-widest">{exercise.variation}</span>
+                    <span className="text-[10px] text-text-secondary/40 font-bold uppercase tracking-[.2em] font-display">{exercise.variation}</span>
                   </div>
-                  <div className="p-4 space-y-2">
+                  <div className="p-6 space-y-3">
             {exercise.sets.map((set: any, sIdx: number) => {
               const maxWeight = Math.max(...exercise.sets.map((s: any) => s.weight));
               const isTopSet = set.weight === maxWeight && set.weight > 0;
               
               return (
-                <div key={sIdx} className={`flex items-center justify-between px-3 py-2 rounded-xl bg-black/40 border border-transparent ${isTopSet ? 'border-accent/10' : ''}`}>
-                  <div className="flex items-center gap-4">
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-[9px] font-black text-gray-700 italic">SET {sIdx + 1}</span>
-                      <span className={`text-[7px] font-black uppercase px-1.5 py-0.5 rounded ${
-                        set.type === 'warmup' ? 'bg-orange-500/20 text-orange-500' :
-                        set.type === 'dropset' ? 'bg-blue-500/20 text-blue-400' :
-                        'bg-accent/20 text-accent'
+                <div key={sIdx} className={`flex items-center justify-between px-5 py-4 rounded-2xl bg-bg-secondary border transition-all ${isTopSet ? 'border-brand-primary/20 bg-brand-primary/5 shadow-inner' : 'border-transparent'}`}>
+                  <div className="flex items-center gap-6">
+                    <div className="flex flex-col items-center">
+                      <span className="text-[8px] font-bold text-text-secondary/40 italic font-display">SEQ {sIdx + 1}</span>
+                      <span className={`text-[8px] font-bold uppercase px-2 py-0.5 rounded-lg font-display ${
+                        set.type === 'warmup' ? 'bg-orange-500/10 text-orange-500' :
+                        set.type === 'dropset' ? 'bg-brand-cyan/10 text-brand-cyan' :
+                        'bg-brand-primary/10 text-brand-primary'
                       }`}>
-                        {set.type === 'warmup' ? 'Warmup' : set.type === 'dropset' ? 'Dropset' : 'Working'}
+                        {set.type === 'warmup' ? 'W' : set.type === 'dropset' ? 'D' : 'S'}
                       </span>
                     </div>
-                    <div className="flex items-baseline gap-1">
-                      <span className={`text-sm font-black italic ${isTopSet ? 'text-accent' : 'text-white'}`}>{set.weight}</span>
-                      <span className="text-[8px] text-gray-500 font-bold uppercase tracking-widest">kg</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className={`text-xl font-bold italic font-display ${isTopSet ? 'text-brand-primary' : 'text-text-primary'}`}>{set.weight}</span>
+                      <span className="text-[10px] text-text-secondary/40 font-bold uppercase tracking-widest font-display">kg</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-6">
-                    <div className="flex items-baseline gap-1">
-                      <span className={`text-sm font-black italic ${isTopSet ? 'text-accent' : 'text-white'}`}>{set.reps}</span>
-                      <span className="text-[8px] text-gray-500 font-bold uppercase tracking-widest">reps</span>
+                  <div className="flex items-center gap-8">
+                    <div className="flex items-baseline gap-2">
+                      <span className={`text-xl font-bold italic font-display ${isTopSet ? 'text-brand-primary' : 'text-text-primary'}`}>{set.reps}</span>
+                      <span className="text-[10px] text-text-secondary/40 font-bold uppercase tracking-widest font-display">reps</span>
                     </div>
                     {set.rpe && (
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-[8px] text-gray-500 font-bold uppercase tracking-widest">RPE</span>
-                        <span className="text-xs font-black italic text-accent">{set.rpe}</span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-[10px] text-text-secondary/40 font-bold uppercase tracking-widest font-display">RPE</span>
+                        <span className="text-lg font-bold italic text-brand-cyan font-display">{set.rpe}</span>
                       </div>
                     )}
                   </div>
@@ -579,27 +620,21 @@ export default function WorkoutSession() {
               );
             })}
                   </div>
-                  {isPB && (
-                    <div className="bg-accent/5 px-5 py-3 border-t border-accent/10 flex items-center gap-2">
-                      <Sparkles size={12} className="text-accent" />
-                      <span className="text-[8px] font-black uppercase tracking-widest text-accent">Personal Best Protocol Optimized</span>
-                    </div>
-                  )}
                 </div>
               );
             })}
           </div>
         </section>
 
-        <div className="space-y-4">
+        <div className="space-y-4 pb-20">
           <button 
             onClick={() => navigate('/dashboard')}
-            className="w-full bg-accent text-black py-6 rounded-[2.5rem] font-black italic uppercase tracking-widest flex items-center justify-center gap-2 shadow-2xl shadow-accent/20"
+            className="w-full bg-text-primary text-bg-primary py-8 rounded-[2rem] font-bold italic uppercase tracking-[0.3em] flex items-center justify-center gap-4 shadow-2xl hover:scale-[1.02] active:scale-95 transition-all font-display group"
           >
-            Back to Dashboard <ChevronRight size={18} />
+            Terminate Session <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
           </button>
-          <button className="w-full bg-gray-900 text-gray-400 py-6 rounded-[2.5rem] font-black italic uppercase tracking-widest border border-gray-800">
-            Share Progress
+          <button className="w-full bg-bg-card text-text-secondary py-8 rounded-[2rem] font-bold italic uppercase tracking-[0.3em] border border-border-color hover:bg-bg-secondary transition-all font-display opacity-40 hover:opacity-100">
+            Broadcast Data
           </button>
         </div>
       </motion.div>
@@ -607,44 +642,44 @@ export default function WorkoutSession() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] pb-32">
+    <div className="min-h-screen bg-bg-primary text-text-primary pb-32">
       {/* Header */}
-      <header className="p-6 pt-12 flex justify-between items-center bg-[var(--bg-primary)]/80 backdrop-blur-md sticky top-0 z-50 border-b border-[var(--border-color)]">
-        <div className="flex items-center gap-3">
+      <header className="p-8 pb-6 flex justify-between items-center bg-bg-primary/95 backdrop-blur-2xl sticky top-0 z-[60] border-b border-border-color">
+        <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate('/dashboard')}
-            className="w-10 h-10 bg-[var(--bg-secondary)] rounded-xl flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            className="w-12 h-12 bg-bg-secondary rounded-2xl flex items-center justify-center text-text-secondary hover:text-brand-primary transition-all shadow-inner border border-border-color"
           >
-            <ChevronLeft size={20} />
+            <ChevronLeft size={24} />
           </button>
           <div className="flex flex-col">
-            <Logo className="w-4 h-4 mb-1" />
-            <span className="text-[8px] text-[var(--text-secondary)] font-black uppercase tracking-widest leading-none">ID: {user?.uid.slice(0, 8)}</span>
+            <h1 className="text-xl font-bold tracking-tight text-text-primary font-display uppercase italic leading-none mb-1">Live Interface</h1>
+            <span className="text-[10px] text-brand-primary font-bold uppercase tracking-[0.2em] font-display opacity-80">Protocol Node Active</span>
           </div>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-8">
           {restSeconds > 0 && (
             <motion.div 
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="text-right border-r border-[var(--border-color)] pr-4"
+              className="text-right border-r border-border-color pr-6"
             >
-              <p className="text-[8px] text-blue-400 font-black uppercase tracking-[0.2em] mb-1">Rest</p>
-              <h2 className="text-sm font-black italic text-blue-400 tabular-nums">
+              <p className="text-[10px] text-brand-cyan font-bold uppercase tracking-[0.2em] mb-1 font-display">Recalibration</p>
+              <h2 className="text-xl font-bold italic text-brand-cyan tabular-nums font-display">
                 {restSeconds}s
               </h2>
             </motion.div>
           )}
           <div className="text-right">
-            <div className="flex items-center justify-end gap-1 mb-1">
+            <div className="flex items-center justify-end gap-2 mb-1">
               <motion.div 
-                animate={{ opacity: [1, 0.4, 1] }} 
+                animate={{ opacity: [1, 0.3, 1] }} 
                 transition={{ duration: 1.5, repeat: Infinity }}
-                className="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_8px_rgba(45,212,191,0.6)]" 
+                className="w-2 h-2 rounded-full bg-brand-primary shadow-[0_0_12px_rgba(79,70,229,0.7)]" 
               />
-              <p className="text-[8px] text-accent font-black uppercase tracking-[0.2em]">Synaptic Live</p>
+              <p className="text-[10px] text-text-secondary font-bold uppercase tracking-[0.2em] font-display">Time Active</p>
             </div>
-            <h2 className="text-xl font-black italic uppercase tracking-tighter tabular-nums">
+            <h2 className="text-3xl font-bold italic uppercase tracking-tighter tabular-nums font-display text-text-primary">
               {formatTime(seconds)}
             </h2>
           </div>
@@ -658,24 +693,30 @@ export default function WorkoutSession() {
             <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.3em]">Downloading Synapse Protocol...</p>
           </div>
         ) : !isActive ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-24 h-24 bg-accent/10 rounded-[2.5rem] flex items-center justify-center mb-8 relative">
-              <Play size={40} className="text-accent ml-2" />
+          <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+            <div className="w-40 h-40 bg-brand-primary/10 rounded-[3.5rem] flex items-center justify-center mb-12 relative group">
+              <div className="absolute inset-0 bg-brand-primary/20 rounded-[3.5rem] blur-3xl opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
+              <Play size={64} className="text-brand-primary ml-3 relative z-10 drop-shadow-2xl" />
               <motion.div 
-                animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.1, 0.3] }}
-                transition={{ duration: 3, repeat: Infinity }}
-                className="absolute inset-0 bg-accent rounded-full blur-2xl"
+                animate={{ scale: [1, 1.15, 1], rotate: [0, 90, 180, 270, 360] }}
+                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-0 border-2 border-brand-primary/30 border-dashed rounded-[3.5rem]"
               />
             </div>
-            <h1 className="text-4xl font-black italic uppercase tracking-tighter mb-4 leading-none">Initialize<br/><span className="text-accent">Evolution</span></h1>
-            <p className="text-gray-500 text-xs max-w-[240px] mb-12 uppercase font-black tracking-widest leading-relaxed">
-              Activate neural tracking to record physiological adaptation.
+            <h1 className="text-6xl font-bold italic uppercase tracking-tighter mb-6 leading-none text-text-primary font-display">
+              Initialize<br/><span className="neural-text-gradient">Protocol X</span>
+            </h1>
+            <p className="text-text-secondary text-xs max-w-[280px] mb-16 uppercase font-bold tracking-[0.3em] leading-relaxed font-display opacity-60">
+              Activate neural tracking to record physiological adaptation and performance metrics.
             </p>
             <button 
               onClick={startWorkout}
-              className="w-full max-w-sm bg-accent text-black py-7 rounded-[2.5rem] text-sm font-black uppercase tracking-[0.2em] shadow-2xl shadow-accent/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+              className="w-full max-w-sm neural-gradient text-white py-8 rounded-[2rem] text-sm font-bold uppercase tracking-[0.3em] shadow-[0_20px_50px_rgba(79,70,229,0.3)] hover:scale-[1.03] active:scale-95 transition-all flex items-center justify-center gap-4 font-display group"
             >
-              <Zap size={18} fill="black" /> Begin Session
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:rotate-12 transition-transform">
+                <Zap size={18} fill="white" className="text-white" />
+              </div>
+              Begin Session
             </button>
           </div>
         ) : (
@@ -688,96 +729,107 @@ export default function WorkoutSession() {
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -50 }}
-                  className="bg-[var(--bg-card)] rounded-[2.5rem] border border-[var(--border-color)] overflow-hidden shadow-xl"
+                  className="bg-bg-card rounded-[2.5rem] border border-border-color overflow-hidden shadow-xl"
                 >
-                  <div className="p-6 border-b border-[var(--border-color)] bg-black/40">
-                    <div className="flex items-center justify-between mb-5">
+                  <div className="p-8 border-b border-border-color bg-bg-secondary/50 backdrop-blur-sm relative group">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-brand-primary opacity-50 group-hover:w-2 transition-all" />
+                    <div className="flex items-center justify-between mb-8">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="text-[8px] text-accent/50 font-black uppercase tracking-[0.3em]">Objective</p>
+                        <div className="flex items-center gap-3 mb-3">
+                          <p className="text-[10px] text-brand-primary font-bold uppercase tracking-[0.3em] font-display">Target Objective</p>
                           {personalBests[exercise.name] && (
-                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20">
-                              <Trophy size={8} className="text-accent" />
-                              <span className="text-[7px] font-black text-accent uppercase tracking-widest">
-                                Best: {personalBests[exercise.name].weight}kg × {personalBests[exercise.name].reps}
+                            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-brand-primary/10 border border-brand-primary/20">
+                              <Trophy size={10} className="text-brand-primary" />
+                              <span className="text-[8px] font-bold text-brand-primary uppercase tracking-widest font-display">
+                                Neural Peak: {personalBests[exercise.name].weight}kg × {personalBests[exercise.name].reps}
                               </span>
                             </div>
                           )}
                         </div>
-                        <select 
-                          value={exercise.name}
-                          onChange={(e) => updateExerciseName(exIdx, e.target.value)}
-                          className="bg-transparent text-xl font-black italic uppercase tracking-tighter text-accent outline-none appearance-none cursor-pointer hover:opacity-80 transition-opacity w-full leading-none"
-                        >
-                          {EXERCISE_DATABASE.map(ex => (
-                            <option key={ex.name} value={ex.name} className="bg-[var(--bg-card)]">{ex.name}</option>
-                          ))}
-                        </select>
+                        <div className="relative">
+                          <select 
+                            value={exercise.name}
+                            onChange={(e) => updateExerciseName(exIdx, e.target.value)}
+                            className="bg-transparent text-3xl font-bold italic uppercase tracking-tighter text-text-primary outline-none appearance-none cursor-pointer hover:text-brand-primary transition-all w-full leading-none font-display"
+                          >
+                            {EXERCISE_DATABASE.map(ex => (
+                              <option key={ex.name} value={ex.name} className="bg-bg-primary text-text-primary font-sans text-base p-4">{ex.name}</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 rounded-xl bg-accent/5 flex items-center justify-center border border-accent/10">
-                          <Dumbbell size={18} className="text-accent" />
+                      <div className="flex items-center gap-3">
+                        <div className="w-14 h-14 rounded-2xl bg-bg-primary flex items-center justify-center border border-border-color text-brand-primary shadow-inner group-hover:scale-110 transition-transform">
+                          <Dumbbell size={24} />
                         </div>
                         <button 
                           onClick={() => removeExercise(exIdx)}
-                          className="p-2 text-gray-700 hover:text-red-500 transition-colors"
+                          className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 transition-all flex items-center justify-center border border-rose-500/20"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={18} />
                         </button>
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-3">
-                      <div className="flex-[2] relative">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="relative group/sel">
+                        <label className="absolute left-4 -top-2 px-2 bg-bg-secondary text-[8px] font-bold uppercase tracking-widest text-text-secondary font-display z-10">Variation</label>
                         <select 
                           value={exercise.variation}
                           onChange={(e) => updateExerciseVariation(exIdx, e.target.value)}
-                          className="w-full bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[var(--text-primary)] outline-none focus:border-accent transition-colors appearance-none cursor-pointer"
+                          className="w-full bg-bg-primary border border-border-color rounded-2xl px-6 py-4 text-xs font-bold uppercase tracking-widest text-text-primary outline-none focus:border-brand-primary transition-all appearance-none cursor-pointer font-display shadow-inner"
                         >
                           {EXERCISE_DATABASE.find(e => e.name === exercise.name)?.variations.map(v => (
-                            <option key={v} value={v} className="bg-[var(--bg-card)]">{v}</option>
+                            <option key={v} value={v} className="bg-bg-primary">{v}</option>
                           ))}
                         </select>
-                        <ChevronRight size={12} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 rotate-90 pointer-events-none" />
+                        <ChevronRight size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary/40 rotate-90 pointer-events-none" />
                       </div>
-                      <div className="flex-1">
+                      <div className="relative">
+                        <label className="absolute left-4 -top-2 px-2 bg-bg-secondary text-[8px] font-bold uppercase tracking-widest text-text-secondary font-display z-10">Neural Notes</label>
                         <input 
                           type="text"
-                          placeholder="NOTES"
+                          placeholder="RECORD INSIGHTS..."
                           value={exercise.notes || ''}
                           onChange={(e) => updateExerciseNotes(exIdx, e.target.value)}
-                          className="w-full bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[var(--text-primary)] outline-none focus:border-accent transition-colors"
+                          className="w-full bg-bg-primary border border-border-color rounded-2xl px-6 py-4 text-xs font-bold uppercase tracking-widest text-text-primary outline-none focus:border-brand-primary transition-all font-display placeholder:text-text-secondary/20 shadow-inner"
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div className="p-6 space-y-4">
-                    <div className="grid grid-cols-[0.8fr,2fr,2fr,1.5fr,1fr] gap-3 text-[9px] text-gray-600 font-black uppercase tracking-[.2em] text-center px-4">
-                      <div>ID</div>
+                  <div className="p-8 space-y-6 bg-bg-card">
+                    <div className="grid grid-cols-[0.8fr,2fr,2fr,1.5fr,1fr] gap-4 text-[10px] text-text-secondary/40 font-bold uppercase tracking-[0.3em] text-center px-4 font-display">
+                      <div>Sequence</div>
                       <div>Weight</div>
                       <div>Reps</div>
-                      <div>RPE</div>
-                      <div>Status</div>
+                      <div>Intensity</div>
+                      <div>State</div>
                     </div>
                     
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       <AnimatePresence initial={false}>
                         {exercise.sets.map((set, sIdx) => (
-                          <motion.div 
+                          <React.Fragment key={sIdx}>
+                            <motion.div 
                             key={sIdx}
                             layout
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, scale: 0.9 }}
-                            className={`grid grid-cols-[0.8fr,2fr,2fr,1.5fr,1fr] gap-3 items-center p-3 rounded-2xl border transition-all ${
+                            className={`grid grid-cols-[0.8fr,2fr,2fr,1.5fr,1fr] gap-4 items-center p-4 rounded-[1.5rem] border transition-all relative overflow-hidden group/set ${
                               set.isCompleted 
-                              ? 'bg-accent/5 border-accent/20 opacity-60' 
-                              : 'bg-black border-[var(--border-color)]'
-                            }`}
+                              ? 'bg-brand-primary/5 border-brand-primary/20 opacity-40' 
+                              : 'bg-bg-secondary border-border-color shadow-inner hover:border-brand-primary/30'
+                            } ${set.error ? 'border-rose-500/50 bg-rose-500/5' : ''}`}
                           >
-                            <div className="flex flex-col items-center gap-1">
-                              <span className="text-[11px] font-black italic text-gray-500 leading-none">{sIdx + 1}</span>
+                            {set.error && (
+                              <div className="absolute top-0 right-0 px-2 py-0.5 bg-rose-500 text-[6px] text-white font-bold uppercase tracking-widest rounded-bl-lg animate-pulse z-10">
+                                {set.error}
+                              </div>
+                            )}
+                            <div className="flex flex-col items-center gap-2">
+                              <span className="text-xs font-bold italic text-text-secondary font-display leading-none">{sIdx + 1}</span>
                               <button 
                                 onClick={() => {
                                   const types: Set['type'][] = ['warmup', 'working', 'dropset'];
@@ -785,85 +837,104 @@ export default function WorkoutSession() {
                                   const nextType = types[(currentIdx + 1) % types.length];
                                   updateSet(exIdx, sIdx, 'type', nextType);
                                 }}
-                                className={`text-[7px] font-black uppercase px-1.5 py-0.5 rounded ${
-                                  set.type === 'warmup' ? 'bg-orange-500/20 text-orange-500' :
-                                  set.type === 'dropset' ? 'bg-blue-500/20 text-blue-400' :
-                                  'bg-accent/20 text-accent'
+                                className={`text-[8px] font-bold uppercase px-2 py-1 rounded-lg font-display transition-all ${
+                                  set.type === 'warmup' ? 'bg-orange-500/10 text-orange-500 border border-orange-500/20' :
+                                  set.type === 'dropset' ? 'bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/20' :
+                                  'bg-brand-primary/10 text-brand-primary border border-brand-primary/20'
                                 }`}
                               >
                                 {set.type === 'warmup' ? 'W' : set.type === 'dropset' ? 'D' : 'S'}
                               </button>
                             </div>
                             
-                            <div className="relative group">
+                            <div className="relative group/input">
                               <input 
                                 type="number"
                                 inputMode="decimal"
                                 value={set.weight || ''}
                                 onChange={(e) => updateSet(exIdx, sIdx, 'weight', parseFloat(e.target.value) || 0)}
                                 placeholder="0"
-                                className="w-full bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl py-3 text-center text-sm font-black italic outline-none focus:border-accent group-hover:border-accent/40 transition-colors"
+                                className="w-full bg-bg-primary border border-border-color rounded-2xl py-4 text-center text-lg font-bold italic outline-none focus:border-brand-primary group-hover:border-brand-primary/40 transition-all font-display text-text-primary shadow-inner"
                               />
-                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-bold text-gray-700 pointer-events-none group-focus-within:text-accent">KG</span>
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-bold text-text-secondary/20 pointer-events-none group-focus-within/input:text-brand-primary font-display">KG</span>
                             </div>
 
-                            <div className="relative group">
+                            <div className="relative group/input">
                               <input 
                                 type="number"
                                 inputMode="numeric"
                                 value={set.reps || ''}
                                 onChange={(e) => updateSet(exIdx, sIdx, 'reps', parseInt(e.target.value) || 0)}
                                 placeholder="0"
-                                className="w-full bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl py-3 text-center text-sm font-black italic outline-none focus:border-accent group-hover:border-accent/40 transition-colors"
+                                className="w-full bg-bg-primary border border-border-color rounded-2xl py-4 text-center text-lg font-bold italic outline-none focus:border-brand-primary group-hover:border-brand-primary/40 transition-all font-display text-text-primary shadow-inner"
                               />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-bold text-text-secondary/20 pointer-events-none group-focus-within/input:text-brand-primary font-display uppercase tracking-widest">Reps</span>
                             </div>
 
-                            <div className="relative">
-                              <select 
+                            <div className="relative group/input">
+                              <input 
+                                type="number"
+                                inputMode="decimal"
+                                step="0.5"
+                                min="0"
+                                max="10"
                                 value={set.rpe || ''}
-                                onChange={(e) => updateSet(exIdx, sIdx, 'rpe', parseFloat(e.target.value) || undefined)}
-                                className="w-full bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl py-3 text-center text-[10px] font-black italic outline-none focus:border-accent transition-colors appearance-none cursor-pointer"
-                              >
-                                <option value="">RPE</option>
-                                {[...Array(11)].map((_, i) => (
-                                  <option key={i} value={i}>{i}</option>
-                                ))}
-                                <option value="6.5">6.5</option>
-                                <option value="7.5">7.5</option>
-                                <option value="8.5">8.5</option>
-                                <option value="9.5">9.5</option>
-                              </select>
+                                onChange={(e) => updateSet(exIdx, sIdx, 'rpe', e.target.value)}
+                                placeholder="RPE"
+                                className={`w-full bg-bg-primary border rounded-2xl py-4 text-center text-lg font-bold italic outline-none transition-all font-display text-brand-cyan shadow-inner ${
+                                  set.rpe ? 'border-brand-cyan/20' : 'border-border-color focus:border-brand-cyan'
+                                }`}
+                              />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-bold text-text-secondary/20 pointer-events-none group-focus-within/input:text-brand-cyan font-display uppercase tracking-widest">RPE</span>
                             </div>
 
                             <div className="flex justify-center">
                               <button 
                                 onClick={() => updateSet(exIdx, sIdx, 'isCompleted', !set.isCompleted)}
-                                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                                className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
                                   set.isCompleted 
-                                  ? 'bg-accent text-black shadow-lg shadow-accent/20 scale-105' 
-                                  : 'bg-gray-900/50 text-gray-700 hover:text-gray-400 border border-gray-800'
+                                  ? 'bg-brand-primary text-white shadow-xl shadow-brand-primary/20 scale-110 active:scale-95' 
+                                  : 'bg-bg-primary text-text-secondary hover:text-text-primary border border-border-color hover:border-brand-primary/40 shadow-sm transition-all'
                                 }`}
                               >
-                                {set.isCompleted ? <Check size={18} strokeWidth={3} /> : <Minus size={18} />}
+                                {set.isCompleted ? <Check size={20} strokeWidth={3} /> : <Minus size={20} />}
                               </button>
                             </div>
                           </motion.div>
+                          
+                          {/* Per-Set Notes Input (Expands on hover or if content exists) */}
+                          <motion.div 
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            className="px-6 mb-4 -mt-2 overflow-hidden"
+                          >
+                            <div className="relative group/set-note">
+                              <input 
+                                type="text"
+                                placeholder="Set insights..."
+                                value={set.notes || ''}
+                                onChange={(e) => updateSet(exIdx, sIdx, 'notes', e.target.value)}
+                                className="w-full bg-transparent border-b border-border-color/30 py-2 text-[10px] font-bold uppercase tracking-widest text-text-secondary outline-none focus:border-brand-primary/50 transition-all font-display placeholder:text-text-secondary/10"
+                              />
+                            </div>
+                          </motion.div>
+                        </React.Fragment>
                         ))}
                       </AnimatePresence>
                     </div>
                     
-                    <div className="flex items-center gap-3 pt-2">
+                    <div className="flex items-center gap-4 pt-4 px-2">
                       <button 
                         onClick={() => addSet(exIdx)}
-                        className="flex-1 py-4 bg-black border border-dashed border-gray-800 rounded-2xl text-[9px] font-black uppercase tracking-widest text-gray-500 hover:border-accent hover:text-accent transition-all flex items-center justify-center gap-2"
+                        className="flex-1 py-5 bg-bg-primary border-2 border-dashed border-border-color rounded-[1.5rem] text-[10px] font-bold uppercase tracking-[0.3em] text-text-secondary hover:border-brand-primary hover:text-brand-primary transition-all flex items-center justify-center gap-3 font-display group/add"
                       >
-                        <Plus size={14} /> Add Set
+                        <Plus size={16} className="group-hover/add:rotate-90 transition-transform" /> Sync New Sequence
                       </button>
                       <button 
                         onClick={() => removeSet(exIdx, exercise.sets.length - 1)}
-                        className="px-6 py-4 bg-black border border-gray-900 rounded-2xl text-gray-700 hover:text-red-500 hover:border-red-500/20 transition-all"
+                        className="w-16 h-16 bg-bg-primary border border-border-color rounded-[1.5rem] text-text-secondary hover:text-rose-500 hover:border-rose-500/20 transition-all flex items-center justify-center shadow-inner"
                       >
-                        <Minus size={14} />
+                        <Minus size={20} />
                       </button>
                     </div>
                   </div>
@@ -873,10 +944,12 @@ export default function WorkoutSession() {
 
             <button 
               onClick={addExercise}
-              className="w-full py-8 border-2 border-dashed rounded-[2.5rem] bg-black border-gray-900 text-[10px] font-black uppercase tracking-[0.3em] text-gray-700 hover:border-accent hover:text-accent transition-all flex items-center justify-center gap-3 group"
+              className="w-full py-10 border-2 border-dashed rounded-[3.5rem] bg-bg-card border-border-color text-[11px] font-bold uppercase tracking-[0.4em] text-text-secondary hover:border-brand-primary hover:text-brand-primary transition-all flex items-center justify-center gap-4 group font-display mb-20 shadow-sm"
             >
-              <Plus size={18} className="group-hover:rotate-90 transition-transform duration-300" /> 
-              Next Exercise Phase
+              <div className="w-12 h-12 rounded-2xl bg-bg-secondary flex items-center justify-center group-hover:bg-brand-primary/10 transition-colors">
+                <Plus size={24} className="group-hover:rotate-90 transition-transform duration-500" /> 
+              </div>
+              Initialize Next Phase
             </button>
           </>
         )}
@@ -884,58 +957,58 @@ export default function WorkoutSession() {
 
       {/* Floating Action Bar */}
       {isActive && (
-        <div className="fixed bottom-8 left-6 right-6 z-50 flex flex-col gap-4">
+        <div className="fixed bottom-10 left-8 right-8 z-[100] flex flex-col gap-5">
           <AnimatePresence>
             {restSeconds > 0 && (
               <motion.div 
-                initial={{ y: 100, opacity: 0, scale: 0.9 }}
+                initial={{ y: 100, opacity: 0, scale: 0.95 }}
                 animate={{ y: 0, opacity: 1, scale: 1 }}
-                exit={{ y: 100, opacity: 0, scale: 0.9 }}
-                className="fixed bottom-32 left-6 right-6 bg-[#111]/90 backdrop-blur-2xl p-6 rounded-[2.5rem] border border-blue-500/20 shadow-2xl shadow-blue-500/10 z-50"
+                exit={{ y: 100, opacity: 0, scale: 0.95 }}
+                className="bg-bg-primary/95 backdrop-blur-3xl p-8 rounded-[3.5rem] border border-brand-cyan/20 shadow-2xl shadow-brand-cyan/10"
               >
-                <div className="flex flex-col gap-5">
+                <div className="flex flex-col gap-8">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center">
-                        <HistoryIcon size={28} className={`text-blue-400 ${!isRestPaused ? 'animate-spin-slow' : ''}`} />
+                    <div className="flex items-center gap-5">
+                      <div className="w-16 h-16 bg-brand-cyan/10 rounded-[1.5rem] flex items-center justify-center shadow-inner">
+                        <HistoryIcon size={32} className={`text-brand-cyan ${!isRestPaused ? 'animate-spin-slow' : ''}`} />
                       </div>
                       <div>
-                        <p className="text-[10px] text-gray-500 font-black uppercase tracking-[.2em] mb-1">Synapse Cooldown</p>
-                        <h3 className="text-3xl font-black italic text-white tabular-nums leading-none tracking-tighter">
-                          {restSeconds}<span className="text-sm ml-1 text-blue-400">s</span>
+                        <p className="text-[10px] text-text-secondary font-bold uppercase tracking-[.3em] mb-1 font-display">Optimization Cooldown</p>
+                        <h3 className="text-4xl font-bold italic text-text-primary tabular-nums leading-none tracking-tighter font-display">
+                          {restSeconds}<span className="text-sm ml-2 text-brand-cyan uppercase font-bold tracking-widest">sec</span>
                         </h3>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                       <button 
                         onClick={toggleRestPause}
-                        className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-white hover:bg-white/10 transition-colors border border-white/5"
+                        className="w-14 h-14 bg-bg-secondary rounded-[1.25rem] flex items-center justify-center text-text-primary hover:text-brand-primary transition-all border border-border-color shadow-sm active:scale-90"
                       >
-                        {isRestPaused ? <Play size={20} fill="currentColor" /> : <Pause size={20} fill="currentColor" />}
+                        {isRestPaused ? <Play size={24} fill="currentColor" /> : <Pause size={24} fill="currentColor" />}
                       </button>
                       <button 
                         onClick={skipRest}
-                        className="bg-accent text-black px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-accent/80 transition-all active:scale-95 shadow-lg shadow-accent/20"
+                        className="bg-text-primary text-bg-primary px-8 py-5 rounded-[1.25rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:scale-[1.05] transition-all active:scale-95 shadow-lg font-display"
                       >
-                        Skip
+                        Overclock
                       </button>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-3 pt-5 border-t border-white/5">
+                  <div className="flex items-center gap-4 pt-6 border-t border-border-color/30">
                     <button 
                       onClick={() => adjustRestDuration(-15)}
-                      className="flex-1 bg-white/5 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/10 hover:text-white transition-all border border-white/5"
+                      className="flex-1 bg-bg-secondary py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-text-secondary hover:text-brand-cyan transition-all border border-border-color shadow-inner font-display"
                     >
-                      -15s
+                      -15 SEC
                     </button>
                     <button 
                       onClick={() => adjustRestDuration(15)}
-                      className="flex-1 bg-white/5 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest text-gray-400 hover:bg-white/10 hover:text-white transition-all border border-white/5"
+                      className="flex-1 bg-bg-secondary py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-text-secondary hover:text-brand-cyan transition-all border border-border-color shadow-inner font-display"
                     >
-                      +15s
+                      +15 SEC
                     </button>
-                    <div className="px-2 text-[8px] font-black uppercase tracking-widest text-gray-600">
+                    <div className="px-4 text-[9px] font-bold uppercase tracking-[0.2em] text-text-secondary/40 font-display">
                       Target: {restDuration}s
                     </div>
                   </div>
@@ -947,14 +1020,16 @@ export default function WorkoutSession() {
           <button 
             onClick={finishWorkout}
             disabled={isFinishing || exercises.length === 0 || restSeconds > 0}
-            className="w-full bg-accent text-black py-6 rounded-[2rem] text-sm font-black uppercase tracking-[0.2em] shadow-[0_20px_50px_rgba(45,212,191,0.3)] flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+            className="w-full neural-gradient text-white py-8 rounded-[2.5rem] font-bold italic uppercase tracking-[0.4em] flex items-center justify-center gap-4 shadow-[0_20px_50px_rgba(79,70,229,0.3)] hover:scale-[1.02] active:scale-95 transition-all text-sm font-display group disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isFinishing ? (
-              <Logo className="w-5 h-5 animate-pulse" />
+              <RefreshCw className="animate-spin" size={24} />
             ) : (
               <>
-                <Check size={20} className="stroke-[3]" />
-                Complete Evolution
+                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center group-hover:rotate-12 transition-transform">
+                  <Check size={20} className="text-white" strokeWidth={3} />
+                </div>
+                Finalize Mission
               </>
             )}
           </button>
