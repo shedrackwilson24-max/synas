@@ -67,7 +67,7 @@ export default function Stats() {
   }, [user]);
 
   const activeSyncProviders = useMemo(() => {
-    if (!integrations) return [];
+    if (!integrations || typeof integrations !== 'object') return [];
     return Object.entries(integrations)
       .filter(([key, val]) => val === true && key !== 'lastSynced')
       .map(([key]) => key);
@@ -210,7 +210,7 @@ export default function Stats() {
   }, [workouts]);
 
   const exerciseBests = useMemo(() => {
-    if (!personalBests?.exerciseBests) return [];
+    if (!personalBests?.exerciseBests || typeof personalBests.exerciseBests !== 'object') return [];
     return Object.entries(personalBests.exerciseBests)
       .map(([name, data]) => ({
         name,

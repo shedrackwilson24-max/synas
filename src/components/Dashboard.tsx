@@ -44,6 +44,7 @@ import { logSleep, logBodyMetrics, logHeartRate, subscribeToReadiness } from '..
 import Waitlist from './Waitlist';
 import LogModal from './LogModal';
 import Skeleton from './ui/Skeleton';
+import ProtocolDashboard from './ProtocolDashboard';
 
 const calculateChange = (current: number, last: number) => {
   if (!last || last === 0) return 0;
@@ -107,7 +108,7 @@ export default function Dashboard() {
   }, [user]);
 
   const activeIntegrationsCount = useMemo(() => {
-    if (!integrations) return 0;
+    if (!integrations || typeof integrations !== 'object') return 0;
     return Object.entries(integrations).filter(([k, v]) => v === true && k !== 'lastSynced' && k !== 'garminRefreshToken' && k !== 'garminTokenSecret').length;
   }, [integrations]);
 
@@ -156,6 +157,7 @@ export default function Dashboard() {
   const [readinessScore, setReadinessScore] = useState(0);
   const [showLogModal, setShowLogModal] = useState(false);
   const [logType, setLogType] = useState<'sleep' | 'body' | 'hr'>('sleep');
+  const [activeTab, setActiveTab] = useState<'physiology' | 'protocol'>('physiology');
 
   const { 
     isTracking, 
@@ -328,334 +330,369 @@ export default function Dashboard() {
       animate={{ opacity: 1 }}
       className="pb-24 pt-4 lg:pt-0"
     >
-      <header className="mb-10 flex items-center justify-between">
+      <header className="mb-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
           <div>
             <h1 className="text-4xl font-bold tracking-tight text-text-primary font-display">{greeting}</h1>
             <div className="flex items-center gap-3 mt-1.5">
-              <p className="text-sm text-text-secondary font-medium tracking-tight">Your health flow for today</p>
-              {activeIntegrationsCount > 0 && (
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={async () => {
-                      if (user && integrations) {
-                        setIsSyncing(true);
-                        try {
-                          await integrationService.syncAll(user.uid, integrations);
-                          addNotification('success', 'Neural Sync Complete', 'Biometric data has been successfully recalibrated.');
-                        } catch (err) {
-                          addNotification('info', 'Sync Failed', 'Neural connection unstable. Please try again.');
-                        } finally {
-                          setIsSyncing(false);
-                        }
-                      }
-                    }}
-                    disabled={isSyncing}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full shadow-lg transition-all disabled:opacity-50 ${
-                      isSyncStale 
-                      ? 'bg-rose-500 text-white shadow-rose-500/20 animate-pulse' 
-                      : 'bg-brand-primary text-white shadow-brand-primary/20'
-                    } hover:scale-105 active:scale-95`}
-                  >
-                    <RefreshCw size={10} className={`${isSyncing ? 'animate-spin' : ''}`} />
-                    <span className="text-[8px] font-black font-display uppercase tracking-widest">
-                      {isSyncing ? 'Syncing...' : isSyncStale ? 'Re-Sync Required' : 'Sync Now'}
-                    </span>
-                  </button>
-                  {isSyncStale && (
-                    <motion.div 
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-500/10 text-rose-500 rounded-full border border-rose-500/20"
-                    >
-                      <AlertCircle size={10} />
-                      <span className="text-[8px] font-black font-display uppercase tracking-widest">Data Stale</span>
-                    </motion.div>
-                  )}
-                </div>
-              )}
+              <p className="text-sm text-text-secondary font-medium tracking-tight">Your neural dashboard</p>
+              <div className="flex bg-bg-secondary p-1 rounded-2xl border border-border-color shadow-inner ml-2">
+                <button 
+                  onClick={() => setActiveTab('physiology')}
+                  className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all ${activeTab === 'physiology' ? 'bg-bg-card text-brand-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+                >
+                  Physiology
+                </button>
+                <button 
+                  onClick={() => setActiveTab('protocol')}
+                  className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all ${activeTab === 'protocol' ? 'bg-bg-card text-brand-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+                >
+                  Protocol
+                </button>
+              </div>
             </div>
           </div>
         </div>
-        <div className="hidden sm:flex items-center gap-3">
-          <div className="text-right">
-            <span className="text-sm font-bold text-text-primary block font-display">{profile?.name || user?.email}</span>
-            <span className="text-[10px] text-brand-primary font-bold uppercase tracking-widest mt-0.5 block font-display">{profile?.activity_level || 'Member'} Status</span>
-          </div>
-          <div className="w-12 h-12 rounded-2xl border-2 border-border-color bg-bg-secondary shadow-sm overflow-hidden p-0.5">
-            <img 
-              src={profile?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`} 
-              alt="Profile" 
-              className="w-full h-full object-cover rounded-xl"
-            />
+        <div className="flex items-center justify-between sm:justify-end gap-6">
+          {activeIntegrationsCount > 0 && (
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={async () => {
+                  if (user && integrations) {
+                    setIsSyncing(true);
+                    try {
+                      await integrationService.syncAll(user.uid, integrations);
+                      addNotification('success', 'Neural Sync Complete', 'Biometric data has been successfully recalibrated.');
+                    } catch (err) {
+                      addNotification('info', 'Sync Failed', 'Neural connection unstable. Please try again.');
+                    } finally {
+                      setIsSyncing(false);
+                    }
+                  }
+                }}
+                disabled={isSyncing}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full shadow-lg transition-all disabled:opacity-50 ${
+                  isSyncStale 
+                  ? 'bg-rose-500 text-white shadow-rose-500/20 animate-pulse' 
+                  : 'bg-brand-primary text-white shadow-brand-primary/20'
+                } hover:scale-105 active:scale-95`}
+              >
+                <RefreshCw size={10} className={`${isSyncing ? 'animate-spin' : ''}`} />
+                <span className="text-[8px] font-black font-display uppercase tracking-widest">
+                  {isSyncing ? 'Syncing...' : isSyncStale ? 'Re-Sync Required' : 'Sync Now'}
+                </span>
+              </button>
+              {isSyncStale && (
+                <motion.div 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-500/10 text-rose-500 rounded-full border border-rose-500/20"
+                >
+                  <AlertCircle size={10} />
+                  <span className="text-[8px] font-black font-display uppercase tracking-widest truncate max-w-[50px] sm:max-w-none">Data Stale</span>
+                </motion.div>
+              )}
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <div className="text-right hidden sm:block">
+              <span className="text-sm font-bold text-text-primary block font-display">{profile?.name || user?.email}</span>
+              <span className="text-[10px] text-brand-primary font-bold uppercase tracking-widest mt-0.5 block font-display">{profile?.activity_level || 'Member'} Status</span>
+            </div>
+            <div className="w-12 h-12 rounded-2xl border-2 border-border-color bg-bg-secondary shadow-sm overflow-hidden p-0.5" onClick={() => navigate('/profile')}>
+              <img 
+                src={profile?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`} 
+                alt="Profile" 
+                className="w-full h-full object-cover rounded-xl"
+              />
+            </div>
           </div>
         </div>
       </header>
 
-      <motion.main className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
-        {/* Left Column */}
-        <div className="lg:col-span-12 xl:col-span-8 space-y-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Main Ring Card */}
-            <motion.section 
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
-              className="bg-bg-card p-10 rounded-[3.5rem] border border-border-color shadow-[0_20px_50px_rgba(0,0,0,0.02)] relative overflow-hidden h-fit"
-            >
-              <div className="flex justify-center transform lg:scale-110 mb-2">
-                <FitnessRing 
-                  calories={Math.round((dailyStats?.calories || 0) + pendingCalories)} 
-                  goal={dailyStats?.goalCalories || 600}
-                  steps={(dailyStats?.steps || 0) + pendingSteps}
-                  distance={Number(((dailyStats?.distance || 0) + pendingDistance).toFixed(2))}
-                  size={260}
-                />
-              </div>
-
-              <div className="flex flex-wrap justify-center gap-3 mt-4">
-                <LogButton icon={<Moon size={14} />} label="Sleep" onClick={() => { setLogType('sleep'); setShowLogModal(true); }} />
-                <LogButton icon={<Scale size={14} />} label="Weight" onClick={() => { setLogType('body'); setShowLogModal(true); }} />
-                <LogButton icon={<Heart size={14} />} label="HR" onClick={() => { setLogType('hr'); setShowLogModal(true); }} />
-              </div>
-            </motion.section>
-
-            {/* Step Tracker Card */}
-            <motion.section 
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-bg-card rounded-[3rem] p-8 border border-border-color shadow-[0_20px_50px_rgba(0,0,0,0.02)] relative overflow-hidden flex flex-col justify-center"
-            >
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-4">
-                  <div className={`p-4 rounded-[1.5rem] ${isTracking ? 'neural-gradient text-white shadow-lg shadow-brand-primary/20' : 'bg-bg-secondary text-text-secondary'}`}>
-                    <ActivityIcon size={24} className={isTracking ? 'animate-pulse' : ''} />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold tracking-tight font-display">Active Tracking</h3>
-                    <p className="text-[10px] text-text-secondary font-bold uppercase tracking-widest font-display">Real-time biometrics</p>
-                  </div>
-                </div>
-              </div>
-
-              {isTracking ? (
-                <div className="space-y-6">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-7xl font-bold tracking-tight text-text-primary font-display italic">
-                      {currentSteps.toLocaleString()}
-                    </span>
-                    <span className="text-base font-bold text-text-secondary font-display uppercase tracking-wider">steps</span>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-bg-secondary rounded-2xl p-5 border border-border-color">
-                      <p className="text-[10px] text-text-secondary font-bold uppercase tracking-widest mb-1.5 font-display">Distance</p>
-                      <p className="text-2xl font-bold text-text-primary font-display">
-                        {sessionDistance.toFixed(2)}<span className="text-xs ml-1 text-text-secondary">km</span>
-                      </p>
-                    </div>
-                    <div className="bg-bg-secondary rounded-2xl p-5 border border-border-color">
-                      <p className="text-[10px] text-text-secondary font-bold uppercase tracking-widest mb-1.5 font-display">Burned</p>
-                      <p className="text-2xl font-bold text-text-primary font-display">
-                        {sessionCalories.toFixed(0)}<span className="text-xs ml-1 text-text-secondary">kcal</span>
-                      </p>
-                    </div>
-                  </div>
-
-                  <button 
-                    onClick={stopTracking}
-                    className="w-full bg-text-primary hover:bg-slate-800 py-5 rounded-2xl flex items-center justify-center text-white font-bold tracking-tight transition-all active:scale-95 text-sm font-display uppercase tracking-widest shadow-xl shadow-black/10"
-                  >
-                    Complete Session
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-8">
-                  <p className="text-sm text-text-secondary font-medium leading-relaxed">
-                    Start a tracking session to capture your movement, distance, and metabolic burn with precision.
-                  </p>
-                  <button 
-                    onClick={startTracking}
-                    className="group relative w-full btn-primary py-6 rounded-[1.5rem] flex items-center justify-center text-white font-bold tracking-tight transition-all active:scale-95 shadow-xl shadow-brand-primary/20 overflow-hidden font-display uppercase tracking-widest text-base"
-                  >
-                    <Play size={20} className="mr-2 fill-current" /> Begin Tracking
-                  </button>
-                </div>
-              )}
-            </motion.section>
-          </div>
-
-          {/* Metrics Grid */}
-          <motion.section 
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-6"
+      <AnimatePresence mode="wait">
+        {activeTab === 'physiology' ? (
+          <motion.main 
+            key="physiology"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10"
           >
-            <MetricCard 
-              label="Resting HR"
-              value={`${dailyStats?.restingHeartRate || 0} bpm`}
-              change={dailyStats ? calculateChange(dailyStats.restingHeartRate, dailyStats.lastWeekRestingHeartRate) : 0}
-              icon={<Heart className="text-brand-primary" size={20} />}
-              isSynced={true}
-              loading={statsLoading}
-            />
-            <MetricCard 
-              label="Sleep Quality"
-              value={dailyStats?.sleepScore ? `${dailyStats.sleepScore}/100` : '--'}
-              change={dailyStats ? calculateChange(dailyStats.sleepScore, dailyStats.lastWeekSleepScore) : 0}
-              icon={<Moon className="text-brand-vibrant" size={20} />}
-              isSynced={!!dailyStats?.sleepScore}
-              loading={statsLoading}
-            />
-            <MetricCard 
-              label="Steps"
-              value={((dailyStats?.steps || 0) + pendingSteps).toLocaleString()}
-              change={dailyStats ? calculateChange((dailyStats.steps || 0) + pendingSteps, dailyStats.lastWeekSteps) : 0}
-              icon={<Footprints className="text-brand-cyan" size={20} />}
-              isSynced={true}
-              loading={statsLoading}
-            />
-            <MetricCard 
-              label="Calories"
-              value={`${Math.round((dailyStats?.calories || 0) + pendingCalories).toLocaleString()} kcal`}
-              change={dailyStats ? calculateChange((dailyStats.calories || 0) + pendingCalories, dailyStats.lastWeekCalories) : 0}
-              icon={<Flame className="text-brand-teal" size={20} />}
-              isSynced={true}
-              loading={statsLoading}
-            />
-          </motion.section>
-
-          {/* Trend Section */}
-          <motion.section
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="bg-bg-card rounded-[3rem] p-10 border border-border-color shadow-[0_20px_50px_rgba(0,0,0,0.02)]"
-          >
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
-              <div>
-                <p className="text-[10px] text-text-secondary font-bold uppercase tracking-widest mb-2 font-display">Performance Analytics</p>
-                <div className="text-3xl font-bold tracking-tight text-text-primary font-display">Activity Volume Trend</div>
-              </div>
-              <div className="flex items-center gap-3 bg-brand-primary/10 px-4 py-2 rounded-2xl border border-brand-primary/20">
-                <TrendingUp size={18} className="text-brand-primary" />
-                <span className="text-brand-primary text-sm font-bold tracking-tight font-display">+12.4% vs last week</span>
-              </div>
-            </div>
-            <div className="h-48 flex items-end gap-3 md:gap-4 px-2">
-              {[0, 1, 2, 3, 4, 5, 6].map((_, i) => {
-                const h = stats.normalizedVolumes[i] || 0;
-                return (
-                  <div key={i} className="flex-1 bg-bg-secondary rounded-2xl relative group h-full transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800">
-                    <motion.div 
-                      initial={{ height: 0 }}
-                      animate={{ height: `${Math.max(10, h)}%` }}
-                      transition={{ duration: 1, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
-                      className="absolute bottom-0 left-0 right-0 neural-gradient rounded-2xl shadow-lg shadow-brand-primary/10 group-hover:brightness-110 transition-all"
+            {/* Left Column */}
+            <div className="lg:col-span-12 xl:col-span-8 space-y-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Main Ring Card */}
+                <motion.section 
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="bg-bg-card p-10 rounded-[3.5rem] border border-border-color shadow-[0_20px_50px_rgba(0,0,0,0.02)] relative overflow-hidden h-fit"
+                >
+                  <div className="flex justify-center transform lg:scale-110 mb-2">
+                    <FitnessRing 
+                      calories={Math.round((dailyStats?.calories || 0) + pendingCalories)} 
+                      goal={dailyStats?.goalCalories || 600}
+                      steps={(dailyStats?.steps || 0) + pendingSteps}
+                      distance={Number(((dailyStats?.distance || 0) + pendingDistance).toFixed(2))}
+                      size={260}
                     />
-                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all pointer-events-none">
-                      <span className="text-[10px] bg-text-primary text-white dark:bg-white dark:text-black px-2.5 py-1.5 rounded-xl font-bold font-mono">{Math.round(h)}%</span>
+                  </div>
+
+                  <div className="flex flex-wrap justify-center gap-3 mt-4">
+                    <LogButton icon={<Moon size={14} />} label="Sleep" onClick={() => { setLogType('sleep'); setShowLogModal(true); }} />
+                    <LogButton icon={<Scale size={14} />} label="Weight" onClick={() => { setLogType('body'); setShowLogModal(true); }} />
+                    <LogButton icon={<Heart size={14} />} label="HR" onClick={() => { setLogType('hr'); setShowLogModal(true); }} />
+                  </div>
+                </motion.section>
+
+                {/* Step Tracker Card */}
+                <motion.section 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="bg-bg-card rounded-[3rem] p-8 border border-border-color shadow-[0_20px_50px_rgba(0,0,0,0.02)] relative overflow-hidden flex flex-col justify-center"
+                >
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-4">
+                      <div className={`p-4 rounded-[1.5rem] ${isTracking ? 'neural-gradient text-white shadow-lg shadow-brand-primary/20' : 'bg-bg-secondary text-text-secondary'}`}>
+                        <ActivityIcon size={24} className={isTracking ? 'animate-pulse' : ''} />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold tracking-tight font-display">Active Tracking</h3>
+                        <p className="text-[10px] text-text-secondary font-bold uppercase tracking-widest font-display">Real-time biometrics</p>
+                      </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </motion.section>
-        </div>
 
-        {/* Right Column */}
-        <aside className="lg:col-span-12 xl:col-span-4 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-6">
-            <motion.div 
-              initial={{ opacity: 0, x: 15 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.6 }}
-              className="premium-card p-8 flex items-center justify-between"
-            >
-              <div>
-                <p className="text-[10px] text-text-secondary font-bold uppercase tracking-widest mb-3 font-display">Goal Streak</p>
-                {statsLoading ? <Skeleton className="w-16 h-10" /> : <h3 className="text-5xl font-bold tracking-tight text-text-primary font-display italic">{personalBests?.currentStreak || 0}</h3>}
-                <p className="text-[10px] text-brand-cyan font-bold mt-2 uppercase tracking-widest font-display">Days consistent</p>
-              </div>
-              <div className="w-20 h-20 rounded-[2rem] bg-brand-cyan/10 flex items-center justify-center border border-brand-cyan/20 shadow-inner">
-                <Flame size={36} className="text-brand-cyan" />
-              </div>
-            </motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0, x: 15 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.65 }}
-              className="premium-card p-8 flex items-center justify-between"
-            >
-              <div>
-                <p className="text-[10px] text-text-secondary font-bold uppercase tracking-widest mb-3 font-display">Best Session</p>
-                <h3 className="text-5xl font-bold tracking-tight text-text-primary font-display italic">
-                  {stats.heaviestWeight}<span className="text-sm font-bold text-text-secondary ml-1 lowercase">kg</span>
-                </h3>
-                <p className="text-[10px] text-text-secondary font-bold mt-2 uppercase tracking-widest font-display">Personal volume record</p>
-              </div>
-              <div className="w-20 h-20 rounded-[2rem] bg-bg-secondary flex items-center justify-center border border-border-color shadow-inner">
-                <Trophy size={32} className="text-brand-teal" />
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Activity Logs */}
-          <motion.section
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.7 }}
-            className="sticky top-8 space-y-8"
-          >
-            <Waitlist />
-            
-            <div>
-              <div className="flex items-center justify-between mb-6 px-2">
-                <h3 className="text-[10px] text-text-secondary font-bold uppercase tracking-[.2em] font-display">Recent Activities</h3>
-                <button onClick={() => navigate('/history')} className="text-[10px] text-brand-primary font-bold uppercase tracking-widest hover:text-brand-cyan transition-colors font-display">History</button>
-              </div>
-              <div className="space-y-4">
-                {workoutsLoading ? (
-                  [1, 2, 3].map(i => <div key={i} className="bg-bg-card border border-border-color rounded-[2rem] p-6 h-24 shadow-sm animate-pulse" />)
-                ) : workouts.length > 0 ? (
-                  workouts.slice(0, 4).map((w, i) => (
-                    <motion.div 
-                      key={w.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                      onClick={() => navigate('/history')}
-                      className="premium-card p-5 flex items-center gap-5 group cursor-pointer hover:border-brand-primary/30 hover:bg-bg-secondary/50 dark:hover:bg-zinc-800/50 transition-all"
-                    >
-                      <div className="w-14 h-14 bg-bg-secondary rounded-2xl flex items-center justify-center text-text-secondary group-hover:neural-gradient group-hover:text-white transition-all shadow-inner">
-                        <ActivityIcon size={24} />
+                  {isTracking ? (
+                    <div className="space-y-6">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-7xl font-bold tracking-tight text-text-primary font-display italic">
+                          {currentSteps.toLocaleString()}
+                        </span>
+                        <span className="text-base font-bold text-text-secondary font-display uppercase tracking-wider">steps</span>
                       </div>
-                      <div className="flex-1 overflow-hidden">
-                        <h4 className="text-sm font-bold text-text-primary group-hover:text-brand-primary transition-colors truncate font-display">
-                          {w.exercises?.[0]?.name || 'Health Activity'}
-                        </h4>
-                        <div className="flex items-center gap-3 mt-1 text-[10px] text-text-secondary font-bold uppercase tracking-tight font-display">
-                          <span>{Math.floor(w.duration / 60)} min</span>
-                          <div className="w-1 h-1 rounded-full bg-border-color" />
-                          <span>{w.timestamp?.toDate ? new Date(w.timestamp.toDate()).toLocaleDateString() : 'Today'}</span>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-bg-secondary rounded-2xl p-5 border border-border-color">
+                          <p className="text-[10px] text-text-secondary font-bold uppercase tracking-widest mb-1.5 font-display">Distance</p>
+                          <p className="text-2xl font-bold text-text-primary font-display">
+                            {sessionDistance.toFixed(2)}<span className="text-xs ml-1 text-text-secondary">km</span>
+                          </p>
+                        </div>
+                        <div className="bg-bg-secondary rounded-2xl p-5 border border-border-color">
+                          <p className="text-[10px] text-text-secondary font-bold uppercase tracking-widest mb-1.5 font-display">Burned</p>
+                          <p className="text-2xl font-bold text-text-primary font-display">
+                            {sessionCalories.toFixed(0)}<span className="text-xs ml-1 text-text-secondary">kcal</span>
+                          </p>
                         </div>
                       </div>
-                      <ChevronRight size={16} className="text-text-secondary group-hover:text-brand-primary transition-transform group-hover:translate-x-1" />
-                    </motion.div>
-                  ))
-                ) : (
-                  <div className="bg-bg-card p-10 rounded-[2.5rem] border border-dashed border-border-color text-center">
-                    <p className="text-[10px] text-text-secondary font-bold uppercase tracking-widest font-display">No activities yet</p>
-                  </div>
-                )}
+
+                      <button 
+                        onClick={stopTracking}
+                        className="w-full bg-text-primary hover:bg-slate-800 py-5 rounded-2xl flex items-center justify-center text-white font-bold tracking-tight transition-all active:scale-95 text-sm font-display uppercase tracking-widest shadow-xl shadow-black/10"
+                      >
+                        Complete Session
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-8">
+                      <p className="text-sm text-text-secondary font-medium leading-relaxed">
+                        Start a tracking session to capture your movement, distance, and metabolic burn with precision.
+                      </p>
+                      <button 
+                        onClick={startTracking}
+                        className="group relative w-full btn-primary py-6 rounded-[1.5rem] flex items-center justify-center text-white font-bold tracking-tight transition-all active:scale-95 shadow-xl shadow-brand-primary/20 overflow-hidden font-display uppercase tracking-widest text-base"
+                      >
+                        <Play size={20} className="mr-2 fill-current" /> Begin Tracking
+                      </button>
+                    </div>
+                  )}
+                </motion.section>
               </div>
+
+              {/* Metrics Grid */}
+              <motion.section 
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="grid grid-cols-2 md:grid-cols-4 gap-6"
+              >
+                <MetricCard 
+                  label="Resting HR"
+                  value={`${dailyStats?.restingHeartRate || 0} bpm`}
+                  change={dailyStats ? calculateChange(dailyStats.restingHeartRate, dailyStats.lastWeekRestingHeartRate) : 0}
+                  icon={<Heart className="text-brand-primary" size={20} />}
+                  isSynced={true}
+                  loading={statsLoading}
+                />
+                <MetricCard 
+                  label="Sleep Quality"
+                  value={dailyStats?.sleepScore ? `${dailyStats.sleepScore}/100` : '--'}
+                  change={dailyStats ? calculateChange(dailyStats.sleepScore, dailyStats.lastWeekSleepScore) : 0}
+                  icon={<Moon className="text-brand-vibrant" size={20} />}
+                  isSynced={!!dailyStats?.sleepScore}
+                  loading={statsLoading}
+                />
+                <MetricCard 
+                  label="Steps"
+                  value={((dailyStats?.steps || 0) + pendingSteps).toLocaleString()}
+                  change={dailyStats ? calculateChange((dailyStats.steps || 0) + pendingSteps, dailyStats.lastWeekSteps) : 0}
+                  icon={<Footprints className="text-brand-cyan" size={20} />}
+                  isSynced={true}
+                  loading={statsLoading}
+                />
+                <MetricCard 
+                  label="Calories"
+                  value={`${Math.round((dailyStats?.calories || 0) + pendingCalories).toLocaleString()} kcal`}
+                  change={dailyStats ? calculateChange((dailyStats.calories || 0) + pendingCalories, dailyStats.lastWeekCalories) : 0}
+                  icon={<Flame className="text-brand-teal" size={20} />}
+                  isSynced={true}
+                  loading={statsLoading}
+                />
+              </motion.section>
+
+              {/* Trend Section */}
+              <motion.section
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="bg-bg-card rounded-[3rem] p-10 border border-border-color shadow-[0_20px_50px_rgba(0,0,0,0.02)]"
+              >
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
+                  <div>
+                    <p className="text-[10px] text-text-secondary font-bold uppercase tracking-widest mb-2 font-display">Performance Analytics</p>
+                    <div className="text-3xl font-bold tracking-tight text-text-primary font-display">Activity Volume Trend</div>
+                  </div>
+                  <div className="flex items-center gap-3 bg-brand-primary/10 px-4 py-2 rounded-2xl border border-brand-primary/20">
+                    <TrendingUp size={18} className="text-brand-primary" />
+                    <span className="text-brand-primary text-sm font-bold tracking-tight font-display">+12.4% vs last week</span>
+                  </div>
+                </div>
+                <div className="h-48 flex items-end gap-3 md:gap-4 px-2">
+                  {[0, 1, 2, 3, 4, 5, 6].map((_, i) => {
+                    const h = stats.normalizedVolumes[i] || 0;
+                    return (
+                      <div key={i} className="flex-1 bg-bg-secondary rounded-2xl relative group h-full transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                        <motion.div 
+                          initial={{ height: 0 }}
+                          animate={{ height: `${Math.max(10, h)}%` }}
+                          transition={{ duration: 1, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
+                          className="absolute bottom-0 left-0 right-0 neural-gradient rounded-2xl shadow-lg shadow-brand-primary/10 group-hover:brightness-110 transition-all"
+                        />
+                        <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all pointer-events-none">
+                          <span className="text-[10px] bg-text-primary text-white dark:bg-white dark:text-black px-2.5 py-1.5 rounded-xl font-bold font-mono">{Math.round(h)}%</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </motion.section>
             </div>
-          </motion.section>
-        </aside>
-      </motion.main>
+
+            {/* Right Column */}
+            <aside className="lg:col-span-12 xl:col-span-4 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-6">
+                <motion.div 
+                  initial={{ opacity: 0, x: 15 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.6 }}
+                  className="premium-card p-8 flex items-center justify-between"
+                >
+                  <div>
+                    <p className="text-[10px] text-text-secondary font-bold uppercase tracking-widest mb-3 font-display">Goal Streak</p>
+                    {statsLoading ? <Skeleton className="w-16 h-10" /> : <h3 className="text-5xl font-bold tracking-tight text-text-primary font-display italic">{personalBests?.currentStreak || 0}</h3>}
+                    <p className="text-[10px] text-brand-cyan font-bold mt-2 uppercase tracking-widest font-display">Days consistent</p>
+                  </div>
+                  <div className="w-20 h-20 rounded-[2rem] bg-brand-cyan/10 flex items-center justify-center border border-brand-cyan/20 shadow-inner">
+                    <Flame size={36} className="text-brand-cyan" />
+                  </div>
+                </motion.div>
+
+                <motion.div 
+                  initial={{ opacity: 0, x: 15 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.65 }}
+                  className="premium-card p-8 flex items-center justify-between"
+                >
+                  <div>
+                    <p className="text-[10px] text-text-secondary font-bold uppercase tracking-widest mb-3 font-display">Best Session</p>
+                    <h3 className="text-5xl font-bold tracking-tight text-text-primary font-display italic">
+                      {stats.heaviestWeight}<span className="text-sm font-bold text-text-secondary ml-1 lowercase">kg</span>
+                    </h3>
+                    <p className="text-[10px] text-text-secondary font-bold mt-2 uppercase tracking-widest font-display">Personal volume record</p>
+                  </div>
+                  <div className="w-20 h-20 rounded-[2rem] bg-bg-secondary flex items-center justify-center border border-border-color shadow-inner">
+                    <Trophy size={32} className="text-brand-teal" />
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Activity Logs */}
+              <motion.section
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.7 }}
+                className="sticky top-8 space-y-8"
+              >
+                <Waitlist />
+                
+                <div>
+                  <div className="flex items-center justify-between mb-6 px-2">
+                    <h3 className="text-[10px] text-text-secondary font-bold uppercase tracking-[.2em] font-display">Recent Activities</h3>
+                    <button onClick={() => navigate('/history')} className="text-[10px] text-brand-primary font-bold uppercase tracking-widest hover:text-brand-cyan transition-colors font-display">History</button>
+                  </div>
+                  <div className="space-y-4">
+                    {workoutsLoading ? (
+                      [1, 2, 3].map(i => <div key={i} className="bg-bg-card border border-border-color rounded-[2rem] p-6 h-24 shadow-sm animate-pulse" />)
+                    ) : workouts.length > 0 ? (
+                      workouts.slice(0, 4).map((w, i) => (
+                        <motion.div 
+                          key={w.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.1 }}
+                          onClick={() => navigate('/history')}
+                          className="premium-card p-5 flex items-center gap-5 group cursor-pointer hover:border-brand-primary/30 hover:bg-bg-secondary/50 dark:hover:bg-zinc-800/50 transition-all"
+                        >
+                          <div className="w-14 h-14 bg-bg-secondary rounded-2xl flex items-center justify-center text-text-secondary group-hover:neural-gradient group-hover:text-white transition-all shadow-inner">
+                            <ActivityIcon size={24} />
+                          </div>
+                          <div className="flex-1 overflow-hidden">
+                            <h4 className="text-sm font-bold text-text-primary group-hover:text-brand-primary transition-colors truncate font-display">
+                              {w.exercises?.[0]?.name || 'Health Activity'}
+                            </h4>
+                            <div className="flex items-center gap-3 mt-1 text-[10px] text-text-secondary font-bold uppercase tracking-tight font-display">
+                              <span>{Math.floor(w.duration / 60)} min</span>
+                              <div className="w-1 h-1 rounded-full bg-border-color" />
+                              <span>{w.timestamp?.toDate ? new Date(w.timestamp.toDate()).toLocaleDateString() : 'Today'}</span>
+                            </div>
+                          </div>
+                          <ChevronRight size={16} className="text-text-secondary group-hover:text-brand-primary transition-transform group-hover:translate-x-1" />
+                        </motion.div>
+                      ))
+                    ) : (
+                      <div className="bg-bg-card p-10 rounded-[2.5rem] border border-dashed border-border-color text-center">
+                        <p className="text-[10px] text-text-secondary font-bold uppercase tracking-widest font-display">No activities yet</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.section>
+            </aside>
+          </motion.main>
+        ) : (
+          <motion.div
+            key="protocol"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+          >
+            <ProtocolDashboard />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <LogModal 
         isOpen={showLogModal} 

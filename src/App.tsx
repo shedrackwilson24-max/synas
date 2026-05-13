@@ -1,25 +1,25 @@
-import React, { lazy, Suspense, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { WalletProvider } from './contexts/WalletContext';
 
 import { motion, AnimatePresence } from 'motion/react';
 import Dashboard from './components/Dashboard';
 import Onboarding from './components/Onboarding';
 import ErrorBoundary from './components/ErrorBoundary';
 
-// Lazy load others
-const Auth = lazy(() => import('./components/Auth'));
-const ProfileSetup = lazy(() => import('./components/ProfileSetup'));
-const WorkoutSession = lazy(() => import('./components/WorkoutSession'));
+import Auth from './components/Auth';
+import ProfileSetup from './components/ProfileSetup';
+import WorkoutSession from './components/WorkoutSession';
 import Training from './components/Training';
-const Stats = lazy(() => import('./components/Stats'));
-const Profile = lazy(() => import('./components/Profile'));
-const Settings = lazy(() => import('./components/Settings'));
-const AdminPanel = lazy(() => import('./components/AdminPanel'));
-const WorkoutHistory = lazy(() => import('./components/WorkoutHistory'));
-const MainLayout = lazy(() => import('./components/MainLayout'));
+import Stats from './components/Stats';
+import Profile from './components/Profile';
+import Settings from './components/Settings';
+import AdminPanel from './components/AdminPanel';
+import WorkoutHistory from './components/WorkoutHistory';
+import MainLayout from './components/MainLayout';
 
 const LoadingFallback = () => (
   <div className="min-h-screen bg-bg-primary flex flex-col items-center justify-center relative overflow-hidden">
@@ -98,10 +98,8 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-sans selection:bg-accent selection:text-black">
-      <ErrorBoundary>
-        <Suspense fallback={<LoadingFallback />}>
-          <AnimatePresence mode="wait">
-            <Routes>
+        <AnimatePresence mode="wait">
+          <Routes>
               <Route path="/" element={<Onboarding />} />
               <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
               <Route path="/profile-setup" element={<PrivateRoute><ProfileSetup /></PrivateRoute>} />
@@ -119,22 +117,24 @@ function AppRoutes() {
               <Route path="/workout" element={<PrivateRoute><WorkoutSession /></PrivateRoute>} />
             </Routes>
           </AnimatePresence>
-        </Suspense>
-      </ErrorBoundary>
     </div>
   );
 }
 
 export default function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <ThemeProvider>
-          <NotificationProvider>
-            <AppRoutes />
-          </NotificationProvider>
-        </ThemeProvider>
-      </AuthProvider>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <AuthProvider>
+          <ThemeProvider>
+            <NotificationProvider>
+              <WalletProvider>
+                <AppRoutes />
+              </WalletProvider>
+            </NotificationProvider>
+          </ThemeProvider>
+        </AuthProvider>
+      </Router>
+    </ErrorBoundary>
   );
 }

@@ -18,16 +18,18 @@ async function startServer() {
   // Initialize Firebase Admin
   if (!admin.apps.length) {
     try {
-      // In this environment, initializeApp() without arguments is the most reliable
-      // as it uses the environment's project and service account identity.
       admin.initializeApp();
       console.log("Synapse: Firebase Admin Initialized (Environment Default)");
     } catch (e: any) {
-      console.error("Synapse: Error initializing Admin SDK:", e.message);
-      // Fallback with config if default fails
-      admin.initializeApp({
-        projectId: firebaseConfig.projectId
-      });
+      console.warn("Synapse: Default Admin SDK init failed, trying fallback:", e.message);
+      try {
+        admin.initializeApp({
+          projectId: firebaseConfig.projectId
+        });
+        console.log("Synapse: Firebase Admin Initialized (Fallback Config)");
+      } catch (fallbackError: any) {
+        console.error("Synapse: FATAL: Firebase Admin fallback also failed:", fallbackError.message);
+      }
     }
   }
 
@@ -51,7 +53,18 @@ async function startServer() {
     db = getFirestore();
   }
   
-  const resend = new Resend(process.env.RESEND_API_KEY);
+  // Lazy-ish Resend initialization to avoid crash on startup if key is missing
+  let resend: Resend | null = null;
+  if (process.env.RESEND_API_KEY) {
+    try {
+      resend = new Resend(process.env.RESEND_API_KEY);
+      console.log("Synapse: Resend API initialized");
+    } catch (e: any) {
+      console.error("Synapse: Failed to initialize Resend:", e.message);
+    }
+  } else {
+    console.warn("Synapse: RESEND_API_KEY missing - email features will be disabled");
+  }
 
   app.use(cors());
   app.use(express.json());

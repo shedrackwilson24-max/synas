@@ -22,6 +22,8 @@
           "type": "array",
           "items": { "type": "string" }
         },
+        "walletAddress": { "type": "string" },
+        "discordId": { "type": "string" },
         "notificationsEnabled": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }

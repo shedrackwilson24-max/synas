@@ -9,7 +9,6 @@ export default defineConfig(({mode}) => {
     plugins: [react(), tailwindcss()],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env': env,
       global: 'globalThis',
     },
     resolve: {
@@ -18,6 +17,7 @@ export default defineConfig(({mode}) => {
         'cross-fetch': path.resolve(__dirname, 'src/lib/fetch-shim.js'),
         'node-fetch': path.resolve(__dirname, 'src/lib/fetch-shim.js'),
       },
+      dedupe: ['react', 'react-dom'],
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.

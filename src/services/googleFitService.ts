@@ -143,7 +143,7 @@ class GoogleFitService {
     const startOfDay = new Date().setHours(0, 0, 0, 0);
     
     const data = await this.fetchHealthData(startOfDay, now);
-    if (Object.keys(data).length === 0) return;
+    if (!data || typeof data !== 'object' || Object.keys(data).length === 0) return;
 
     const date = new Date().toISOString().split('T')[0];
     const docId = `${userId}_${date}`;

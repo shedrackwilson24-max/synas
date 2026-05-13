@@ -67,7 +67,7 @@ interface Set {
   weight: number;
   reps: number;
   isCompleted: boolean;
-  type: 'working' | 'warmup' | 'dropset';
+  type: 'working' | 'warmup' | 'dropset' | 'amrap';
   rpe?: number;
   notes?: string;
   error?: string;
@@ -594,9 +594,10 @@ export default function WorkoutSession() {
                       <span className={`text-[8px] font-bold uppercase px-2 py-0.5 rounded-lg font-display ${
                         set.type === 'warmup' ? 'bg-orange-500/10 text-orange-500' :
                         set.type === 'dropset' ? 'bg-brand-cyan/10 text-brand-cyan' :
+                        set.type === 'amrap' ? 'bg-rose-500/10 text-rose-500' :
                         'bg-brand-primary/10 text-brand-primary'
                       }`}>
-                        {set.type === 'warmup' ? 'W' : set.type === 'dropset' ? 'D' : 'S'}
+                        {set.type === 'warmup' ? 'W' : set.type === 'dropset' ? 'D' : set.type === 'amrap' ? 'F' : 'S'}
                       </span>
                     </div>
                     <div className="flex items-baseline gap-2">
@@ -800,11 +801,11 @@ export default function WorkoutSession() {
 
                   <div className="p-8 space-y-6 bg-bg-card">
                     <div className="grid grid-cols-[0.8fr,2fr,2fr,1.5fr,1fr] gap-4 text-[10px] text-text-secondary/40 font-bold uppercase tracking-[0.3em] text-center px-4 font-display">
-                      <div>Sequence</div>
+                      <div>Seq</div>
                       <div>Weight</div>
                       <div>Reps</div>
-                      <div>Intensity</div>
-                      <div>State</div>
+                      <div>RPE</div>
+                      <div>Status</div>
                     </div>
                     
                     <div className="space-y-4">
@@ -832,7 +833,7 @@ export default function WorkoutSession() {
                               <span className="text-xs font-bold italic text-text-secondary font-display leading-none">{sIdx + 1}</span>
                               <button 
                                 onClick={() => {
-                                  const types: Set['type'][] = ['warmup', 'working', 'dropset'];
+                                  const types: Set['type'][] = ['warmup', 'working', 'dropset', 'amrap'];
                                   const currentIdx = types.indexOf(set.type);
                                   const nextType = types[(currentIdx + 1) % types.length];
                                   updateSet(exIdx, sIdx, 'type', nextType);
@@ -840,10 +841,11 @@ export default function WorkoutSession() {
                                 className={`text-[8px] font-bold uppercase px-2 py-1 rounded-lg font-display transition-all ${
                                   set.type === 'warmup' ? 'bg-orange-500/10 text-orange-500 border border-orange-500/20' :
                                   set.type === 'dropset' ? 'bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/20' :
+                                  set.type === 'amrap' ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20' :
                                   'bg-brand-primary/10 text-brand-primary border border-brand-primary/20'
                                 }`}
                               >
-                                {set.type === 'warmup' ? 'W' : set.type === 'dropset' ? 'D' : 'S'}
+                                {set.type === 'warmup' ? 'W' : set.type === 'dropset' ? 'D' : set.type === 'amrap' ? 'F' : 'S'}
                               </button>
                             </div>
                             
@@ -870,22 +872,22 @@ export default function WorkoutSession() {
                               />
                               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-bold text-text-secondary/20 pointer-events-none group-focus-within/input:text-brand-primary font-display uppercase tracking-widest">Reps</span>
                             </div>
-
-                            <div className="relative group/input">
-                              <input 
-                                type="number"
-                                inputMode="decimal"
-                                step="0.5"
-                                min="0"
-                                max="10"
+                             <div className="relative group/input">
+                              <select 
                                 value={set.rpe || ''}
                                 onChange={(e) => updateSet(exIdx, sIdx, 'rpe', e.target.value)}
-                                placeholder="RPE"
-                                className={`w-full bg-bg-primary border rounded-2xl py-4 text-center text-lg font-bold italic outline-none transition-all font-display text-brand-cyan shadow-inner ${
+                                className={`w-full bg-bg-primary border rounded-2xl py-4 text-center text-xs font-bold italic outline-none transition-all font-display text-brand-cyan shadow-inner appearance-none cursor-pointer ${
                                   set.rpe ? 'border-brand-cyan/20' : 'border-border-color focus:border-brand-cyan'
                                 }`}
-                              />
-                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-bold text-text-secondary/20 pointer-events-none group-focus-within/input:text-brand-cyan font-display uppercase tracking-widest">RPE</span>
+                              >
+                                <option value="">RPE</option>
+                                {[10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5].map(v => (
+                                  <option key={v} value={v} className="bg-bg-primary text-text-primary">{v}</option>
+                                ))}
+                              </select>
+                              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-secondary/20">
+                                <ChevronRight size={10} className="rotate-90" />
+                              </div>
                             </div>
 
                             <div className="flex justify-center">
@@ -908,13 +910,14 @@ export default function WorkoutSession() {
                             animate={{ height: 'auto', opacity: 1 }}
                             className="px-6 mb-4 -mt-2 overflow-hidden"
                           >
-                            <div className="relative group/set-note">
+                            <div className="relative group/set-note flex items-center gap-2">
+                              <Sparkles size={8} className={`transition-all ${set.notes ? 'text-brand-primary' : 'text-text-secondary/20'}`} />
                               <input 
                                 type="text"
-                                placeholder="Set insights..."
+                                placeholder="PERFORMANCE INSIGHTS..."
                                 value={set.notes || ''}
                                 onChange={(e) => updateSet(exIdx, sIdx, 'notes', e.target.value)}
-                                className="w-full bg-transparent border-b border-border-color/30 py-2 text-[10px] font-bold uppercase tracking-widest text-text-secondary outline-none focus:border-brand-primary/50 transition-all font-display placeholder:text-text-secondary/10"
+                                className="w-full bg-transparent border-b border-border-color/10 py-2 text-[8px] font-bold uppercase tracking-widest text-text-secondary outline-none focus:border-brand-primary/30 transition-all font-display placeholder:text-text-secondary/10"
                               />
                             </div>
                           </motion.div>

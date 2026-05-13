@@ -3,10 +3,10 @@ import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
-import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { useTheme } from '../contexts/ThemeContext';
-import { ChevronLeft, User, Activity, Target, Save, Loader2, Weight, Ruler, Shield, Bell, Check, Mail, Database, Scale, MessageSquare, Sun, Moon, Zap, Apple, Activity as ActivityIcon } from 'lucide-react';
+import { ChevronLeft, User, Activity, Target, Save, Loader2, Weight, Ruler, Shield, Bell, Check, Mail, Database, Scale, MessageSquare, Sun, Moon, Zap, Apple, Activity as ActivityIcon, Globe } from 'lucide-react';
 import DataManagement from './DataManagement';
 import FeedbackModal from './FeedbackModal';
 
@@ -150,7 +150,8 @@ export default function Settings() {
         privacy_sync: formData.privacy_sync,
         notifications_push: formData.notifications_push,
         notifications_email: formData.notifications_email,
-        reown_project_id: formData.reown_project_id
+        reown_project_id: formData.reown_project_id,
+        updatedAt: serverTimestamp()
       });
       
       addNotification('success', 'Changes Saved', 'Your health parameters have been recalibrated.');
@@ -403,6 +404,22 @@ export default function Settings() {
               onToggle={() => setFormData({...formData, notifications_push: !formData.notifications_push})}
               color="text-brand-cyan"
             />
+          </div>
+        </section>
+
+        {/* Global Protocol Config */}
+        <section className="space-y-6">
+          <SectionHeader icon={<Globe size={16} className="text-brand-primary" />} title="Web3 Protocol Config" />
+          <div className="bg-bg-card rounded-[2.5rem] border border-border-color p-8 shadow-sm">
+            <FormInput 
+              label="Reown Project ID" 
+              value={formData.reown_project_id} 
+              onChange={(val) => setFormData({...formData, reown_project_id: val})} 
+              placeholder="Enter your cloud.reown.com Project ID" 
+            />
+            <p className="text-[10px] text-text-secondary font-medium mt-4 px-2 leading-relaxed italic">
+              * Required for stable neural link connections on custom domains. Default will be used if provided ID is null.
+            </p>
           </div>
         </section>
 

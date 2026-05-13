@@ -52,21 +52,35 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
         const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
-        if (!vapidKey) {
-          console.warn('VAPID Key missing in environment.');
+        
+        // VAPID keys are Base64-URL encoded public keys, typically ~87 characters.
+        const isValidKey = typeof vapidKey === 'string' && vapidKey.length > 50 && !vapidKey.includes('your_');
+
+        if (!isValidKey) {
+          console.warn('FCM: VITE_FIREBASE_VAPID_KEY is missing or invalid in environment settings.');
+          addNotification('reminder', 'Notification Protocol Deferred', 'Push notifications require a valid VAPID Key in system settings to initiate remote link.');
           return;
         }
 
-        const token = await getToken(messaging, {
-          vapidKey: vapidKey
-        });
-        
-        if (token) {
-          await updateDoc(doc(db, 'users', user.uid), {
-            fcmTokens: arrayUnion(token),
-            pushEnabled: true
+        try {
+          const token = await getToken(messaging, {
+            vapidKey: vapidKey
           });
-          addNotification('success', 'Synapse Link Secured', 'Push notifications are now active for your synaptic node.');
+          
+          if (token) {
+            await updateDoc(doc(db, 'users', user.uid), {
+              fcmTokens: arrayUnion(token),
+              pushEnabled: true
+            });
+            addNotification('success', 'Synapse Link Secured', 'Push notifications are now active for your synaptic node.');
+          }
+        } catch (tokenErr: any) {
+          if (tokenErr.message?.includes('applicationServerKey') || tokenErr.message?.includes('vapidKey') || tokenErr.message?.includes('bad-format')) {
+            console.warn('FCM Connection Deferred: The VAPID key provided is incompatible with this Firebase project.');
+            addNotification('reminder', 'Link Protocol Error', 'The current VAPID key is rejected by the relay. Please verify your system configuration.');
+          } else {
+            console.error('FCM: Error fetching token:', tokenErr);
+          }
         }
       }
     } catch (err) {

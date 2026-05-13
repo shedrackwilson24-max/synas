@@ -21,6 +21,10 @@ service cloud.firestore {
              (!data.keys().hasAny(['photoURL']) || (data.photoURL is string || data.photoURL == null)) &&
              (!data.keys().hasAny(['lastLoginAt']) || data.lastLoginAt is timestamp) &&
              (!data.keys().hasAny(['createdAt']) || data.createdAt is timestamp) &&
+             (!data.keys().hasAny(['updatedAt']) || 
+               (request.method == 'create' && data.updatedAt == request.time) || 
+               (request.method == 'update' && (data.updatedAt == request.time || data.updatedAt == existing().updatedAt))
+             ) &&
              (!data.keys().hasAny(['setup_complete']) || data.setup_complete is bool) &&
              (!data.keys().hasAny(['age']) || data.age is number) &&
              (!data.keys().hasAny(['weight']) || data.weight is number) &&
@@ -30,7 +34,17 @@ service cloud.firestore {
              (!data.keys().hasAny(['activity_level']) || data.activity_level is string) &&
              (!data.keys().hasAny(['frequency']) || data.frequency is number) &&
              (!data.keys().hasAny(['focus_areas']) || data.focus_areas is list) &&
-             (!data.keys().hasAny(['activity_rank']) || data.activity_rank is number);
+             (!data.keys().hasAny(['activity_rank']) || data.activity_rank is number) &&
+             (!data.keys().hasAny(['goalCalories']) || data.goalCalories is number) &&
+             (!data.keys().hasAny(['walletAddress']) || (data.walletAddress is string || data.walletAddress == null)) &&
+             (!data.keys().hasAny(['walletType']) || (data.walletType is string || data.walletType == null)) &&
+             (!data.keys().hasAny(['discordId']) || (data.discordId is string && data.discordId.size() <= 100)) &&
+             (!data.keys().hasAny(['units']) || data.units is string) &&
+             (!data.keys().hasAny(['privacy_public']) || data.privacy_public is bool) &&
+             (!data.keys().hasAny(['privacy_sync']) || data.privacy_sync is bool) &&
+             (!data.keys().hasAny(['notifications_push']) || data.notifications_push is bool) &&
+             (!data.keys().hasAny(['notifications_email']) || data.notifications_email is bool) &&
+             (!data.keys().hasAny(['reown_project_id']) || data.reown_project_id is string);
     }
 
     function isValidWorkout(data) {
@@ -125,11 +139,34 @@ service cloud.firestore {
       );
     }
 
+    // Action helpers for Users
+    function isWalletUpdate() {
+      return incoming().diff(existing()).affectedKeys().hasOnly(['walletAddress', 'walletType', 'updatedAt']);
+    }
+    
+    function isProfileUpdate() {
+      return incoming().diff(existing()).affectedKeys().hasOnly([
+          'name', 'email', 'photoURL', 'age', 'weight', 'height', 'gender', 
+          'goal', 'activity_level', 'frequency', 'focus_areas', 'activity_rank', 
+          'discordId', 'setup_complete', 'updatedAt', 'goalCalories', 'createdAt',
+          'units', 'privacy_public', 'privacy_sync', 'notifications_push', 
+          'notifications_email', 'reown_project_id'
+      ]);
+    }
+
+    function isLastLoginUpdate() {
+        return incoming().diff(existing()).affectedKeys().hasOnly(['lastLoginAt']);
+    }
+
     // 1. Users Collection
     match /users/{userId} {
       allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow list: if isAdmin();
-      allow create, update: if isOwner(userId) && isValidUser(incoming());
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isValidUser(incoming()) && (
+          (isOwner(userId) && (isWalletUpdate() || isProfileUpdate() || isLastLoginUpdate())) ||
+          isAdmin()
+      );
     }
 
     // 2. Workout Plans Collection

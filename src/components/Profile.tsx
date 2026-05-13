@@ -1,7 +1,36 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, Settings, Shield, Bell, LogOut, ChevronRight, Edit2, CreditCard, Loader2, Camera, Minus, Plus, Zap, Moon, Sun, Trophy, Calendar as CalendarIcon, Weight, Droplets, Brain, Book, Code, Flame, Activity, X } from 'lucide-react';
+import { 
+  User, 
+  Settings, 
+  Shield, 
+  Bell, 
+  LogOut, 
+  ChevronRight, 
+  Edit2, 
+  CreditCard, 
+  Loader2, 
+  Camera, 
+  Minus, 
+  Plus, 
+  Zap, 
+  Moon, 
+  Sun, 
+  Trophy, 
+  Calendar as CalendarIcon, 
+  Weight, 
+  Droplets, 
+  Brain, 
+  Book, 
+  Code, 
+  Flame, 
+  Activity, 
+  X, 
+  ExternalLink,
+  Wallet
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useWallet } from '../contexts/WalletContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 import { doc, onSnapshot, updateDoc, serverTimestamp, collection, query, where, addDoc, deleteDoc } from 'firebase/firestore';
@@ -10,7 +39,6 @@ import ImageUploadModal from './ImageUploadModal';
 import { useTheme } from '../contexts/ThemeContext';
 import { getPersonalBests } from '../services/fitnessService';
 import Skeleton from './ui/Skeleton';
-import { Wallet } from 'lucide-react';
 
 interface ProfileItemProps {
   icon: React.ReactNode;
@@ -57,6 +85,7 @@ const ProfileItem = ({ icon, label, settingKey, onClick, profile, onToggle }: Pr
 
 export default function Profile() {
   const { user, logout } = useAuth();
+  const { address, isConnected, connect, disconnect, isConnecting } = useWallet();
   const { requestPushPermissions, addNotification } = useNotifications();
   const { toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -341,7 +370,14 @@ export default function Profile() {
                     <button 
                       onClick={async () => {
                         const newGoal = Math.max(100, (profile?.goalCalories || 600) - 50);
-                        await updateDoc(doc(db, 'users', user!.uid), { goalCalories: newGoal });
+                        try {
+                          await updateDoc(doc(db, 'users', user!.uid), { 
+                            goalCalories: newGoal,
+                            updatedAt: serverTimestamp() 
+                          });
+                        } catch (err) {
+                          handleFirestoreError(err, OperationType.UPDATE, `users/${user!.uid}`);
+                        }
                       }}
                       className="w-12 h-12 rounded-2xl bg-bg-card border border-border-color flex items-center justify-center text-text-secondary hover:text-brand-primary hover:shadow-md transition-all active:scale-95 shadow-sm"
                     >
@@ -350,7 +386,14 @@ export default function Profile() {
                     <button 
                       onClick={async () => {
                         const newGoal = (profile?.goalCalories || 600) + 50;
-                        await updateDoc(doc(db, 'users', user!.uid), { goalCalories: newGoal });
+                        try {
+                          await updateDoc(doc(db, 'users', user!.uid), { 
+                            goalCalories: newGoal,
+                            updatedAt: serverTimestamp() 
+                          });
+                        } catch (err) {
+                          handleFirestoreError(err, OperationType.UPDATE, `users/${user!.uid}`);
+                        }
                       }}
                       className="w-12 h-12 rounded-2xl bg-bg-card border border-border-color flex items-center justify-center text-text-secondary hover:text-brand-primary hover:shadow-md transition-all active:scale-95 shadow-sm"
                     >
@@ -545,6 +588,65 @@ export default function Profile() {
               </p>
             </div>
           )}
+        </div>
+      </section>
+
+      <section className="mb-10">
+        <h2 className="text-[10px] text-text-secondary font-bold uppercase tracking-[0.3em] mb-8 px-4 font-display">Web3 Protocol</h2>
+        <div className="px-1">
+          <motion.div 
+            whileHover={{ y: -5 }}
+            className={`bg-bg-card p-8 rounded-[3rem] border ${isConnected ? 'border-brand-primary/40 shadow-brand-primary/5' : 'border-border-color'} group transition-all shadow-sm relative overflow-hidden`}
+          >
+            <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity pointer-events-none">
+              <Wallet size={120} />
+            </div>
+
+            <div className="flex flex-col gap-8">
+              <div className="flex items-center gap-6">
+                <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-all ${isConnected ? 'bg-brand-primary/10 text-brand-primary shadow-lg shadow-brand-primary/10' : 'bg-bg-secondary text-text-secondary shadow-inner'}`}>
+                  {isConnected ? <Shield size={32} /> : <Wallet size={32} />}
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold tracking-tight text-text-primary font-display uppercase">Reown AppKit</h3>
+                  <p className="text-[10px] text-text-secondary font-bold uppercase tracking-widest mt-1 font-display">
+                    {isConnected ? `${address?.slice(0, 8)}...${address?.slice(-6)}` : 'Secure Neural Connection'}
+                  </p>
+                </div>
+              </div>
+
+            <div className="flex flex-col gap-4">
+                {isConnected ? (
+                  <div className="space-y-4">
+                    <div className="bg-bg-secondary/50 rounded-2xl p-4 border border-border-color/50 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[10px] font-bold text-text-secondary uppercase tracking-[0.2em]">Protocol Active</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-brand-primary font-bold">LOCKED</span>
+                    </div>
+                    <button 
+                      onClick={disconnect}
+                      className="w-full py-4 bg-rose-500/10 text-rose-500 text-[10px] font-black uppercase tracking-[0.2em] rounded-[1.5rem] border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all shadow-sm active:scale-95"
+                    >
+                      Terminate Connection
+                    </button>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={connect}
+                    disabled={isConnecting}
+                    className="w-full py-5 bg-blue-600 text-white text-[10px] font-black uppercase tracking-[0.3em] rounded-[1.5rem] shadow-xl shadow-blue-600/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 relative overflow-hidden group/btn"
+                  >
+                    <span className="relative z-10">{isConnecting ? 'Linking Neural Net...' : 'Connect Wallet'}</span>
+                    <motion.div 
+                      className="absolute inset-0 bg-white/10 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 ease-in-out" 
+                    />
+                  </button>
+                )}
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
